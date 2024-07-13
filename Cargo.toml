@@ -1,0 +1,30 @@
+[package]
+name = "actix-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4"
+actix-web-static-files = "4"
+actix-session = { version = "0.9", features = ["cookie-session"] }
+
+static-files = "0.2.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+futures = "0.3"
+
+derive_more = "0.99"
+dotenv = "0.15"
+env_logger = "0.11"
+log = "0.4"
+
+local-ip-address = "0.6"
+
+r2d2 = "0.8"
+r2d2_sqlite = "0.24"
+rusqlite = "0.31"
+
+argon2 = { version = "0.5.3", features = ["password-hash"] }
+
+[build-dependencies]
+static-files = "0.2.1"
