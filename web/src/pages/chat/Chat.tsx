@@ -5,43 +5,15 @@ import { useAuth } from "../../components/AuthProvider";
 import Scrollbars from "react-custom-scrollbars-2";
 import ChatMessage, { Message } from "./ChatMessage";
 
-export default function Chat() {
+interface ChatData {
+    socket: WebSocket
+}
+
+export default function Chat(data: ChatData) {
     const { user } = useAuth();
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [message, setMessage] = useState("");
-    const [messageList, setMessageList] = useState<Message[]>([
-        {msg: "Hole", sender: "Perico", time:new Date(2020)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-        {msg: "hjsadjlhs", sender: "Paq", time:new Date(2027)},
-    ]); 
+    const [messageList, setMessageList] = useState<Message[]>([]); 
 
     const ref = useRef<HTMLDivElement>(null);
     const handleClickOutside = e => {
@@ -63,6 +35,20 @@ export default function Chat() {
         scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
     );
 
+    useEffect(() => {
+        data.socket.onmessage = e => {
+            console.log("message reecived");
+            const msg: Message = {
+                msg: e.data,
+                sender: "Persona 1",
+                time: new Date(),
+                groupId: 1
+            }
+            messageList.push(msg);
+            setMessageList(messageList);
+        };
+    });
+
     const onSendMessage = e => {
         e.preventDefault();
         if(message.length <= 0) 
@@ -70,11 +56,14 @@ export default function Chat() {
         const msg: Message = {
             msg: message,
             sender: user?.username!,
-            time: new Date()
+            time: new Date(),
+            groupId: 1
         }
         messageList.push(msg);
         setMessageList(messageList)
         setMessage("");
+
+        data.socket.send(JSON.stringify(msg));
     }
 
     return <div className="bg-slate-950 h-full flex flex-col grow overflow-x-hidden">

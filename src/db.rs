@@ -26,10 +26,13 @@ pub fn init_database() -> Result<Pool, actix_web::error::Error> {
 	            password	TEXT NOT NULL,
 	            PRIMARY KEY(id AUTOINCREMENT)
             );
+            CREATE UNIQUE INDEX IF NOT EXISTS username_index 
+            ON users (username);
             
             CREATE TABLE IF NOT EXISTS groups (
 	            id	INTEGER,
 	            name	TEXT,
+                last_time   INTEGER,
 	            PRIMARY KEY(id AUTOINCREMENT)
             );
             

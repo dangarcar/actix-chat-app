@@ -4,7 +4,8 @@ import UserImage from "../../components/UserImage"
 export interface Message {
     msg: string,
     time: Date,
-    sender: string
+    sender: string,
+    groupId: number,
 }
 
 interface ChatMessageProps {

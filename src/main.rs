@@ -1,14 +1,18 @@
-use std::env;
+use std::{env, time::Instant};
 
-use actix_session::{storage::CookieSessionStore, SessionMiddleware};
-use actix_web::{cookie::Key, get, middleware::Logger, web, App, HttpServer, Responder};
+use actix::{Actor, Addr};
+use actix_session::{storage::CookieSessionStore, Session, SessionMiddleware};
+use actix_web::{cookie::Key, get, middleware::Logger, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 
-use auth::{delete_user, get_user, login, logout, signup};
+use actix_web_actors::ws;
+use auth::{delete_user, get_user, login, logout, signup, validate_session};
 use db::init_database;
 use dotenv::dotenv;
-use groups::{create_group, get_user_groups};
+use groups::{add_contact, create_group, get_user_groups};
 use local_ip_address::local_ip;
-use log::{info, LevelFilter};
+use log::{debug, info, LevelFilter};
+use server::ChatServer;
+use sessions::WsChatSession;
 
 // This may be very ugly but it's needed for the file bundling
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
@@ -16,6 +20,8 @@ include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 mod auth;
 mod db;
 mod groups;
+mod sessions;
+mod server;
 
 #[get("/hello/{name}")]
 async fn greet(name: web::Path<String>) -> impl Responder {
@@ -25,6 +31,27 @@ async fn greet(name: web::Path<String>) -> impl Responder {
 #[get("/secure")]
 async fn secure() -> impl Responder {
     "This is definitely secure"
+}
+
+#[get("/ws")]
+async fn chat_route(
+    req: HttpRequest,
+    stream: web::Payload,
+    srv: web::Data<Addr<ChatServer>>,
+    session: Session
+) -> Result<HttpResponse, actix_web::Error> {
+    let user_id = validate_session(&session)?;
+    debug!("User id in chat route is: {user_id}");
+
+    ws::start(
+        WsChatSession { 
+            id: user_id, 
+            hb: Instant::now(), 
+            addr: srv.get_ref().clone() 
+        },
+        &req,
+        stream,
+    )
 }
 
 #[actix_web::main]
@@ -42,12 +69,15 @@ async fn main() -> std::io::Result<()> {
 
     let pool = init_database().unwrap();
 
+    let chat_server = ChatServer::default().start();
+
     HttpServer::new(move || {
         let generated = generate();
 
         let session_key = Key::from(env::var("SESSION_KEY").unwrap().as_bytes());
 
         App::new()
+            .app_data(web::Data::new(chat_server.clone()))
             .app_data(web::Data::new(pool.clone()))
             .wrap(
                 SessionMiddleware::builder(CookieSessionStore::default(), session_key)
@@ -58,6 +88,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .service(greet)
             .service(secure)
+            .service(chat_route)
             
             //USER
             .service(get_user)
@@ -69,6 +100,7 @@ async fn main() -> std::io::Result<()> {
             //GROUPS
             .service(get_user_groups)
             .service(create_group)
+            .service(add_contact)
             
             .service(actix_web_static_files::ResourceFiles::new("/", generated))
     })

@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+actix = "0.13"
 actix-web = "4"
 actix-web-static-files = "4"
 actix-session = { version = "0.9", features = ["cookie-session"] }
+actix-web-actors = "4"
 
 static-files = "0.2.1"
 serde = { version = "1.0", features = ["derive"] }

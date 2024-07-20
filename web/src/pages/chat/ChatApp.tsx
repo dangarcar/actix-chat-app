@@ -8,10 +8,13 @@ import userImage from "../../assets/user.png";
 import UserImage from "../../components/UserImage";
 import ContactsBar from "./ContactsBar";
 import Chat from "./Chat";
+import Popup from "reactjs-popup";
 
 export default function ChatApp() {
     const { user, getServerUser } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
+    const [socket, setSocket] = useState<WebSocket>();
+    const [groupPopupOpen, setGroupPopupOpen] = useState(false);
 
     const navigate = useNavigate();
 
@@ -27,6 +30,9 @@ export default function ChatApp() {
         }
 
         isLogged();
+
+        const wsUri = `${window.location.protocol == "https"? 'wss':'ws'}://${window.location.host}/ws`;
+        setSocket(new WebSocket(wsUri));
     }, []);
 
     if(isLoading) {
@@ -38,8 +44,17 @@ export default function ChatApp() {
             <div className="w-[1600px] h-[850px] shadow-glow-1 rounded flex flex-col">
                 <div className="flex h-16">
                     <div className="w-1/4 bg-lime-800 inline-block align-middle border-r border-slate-400">
-                        <img src={userImage} alt="PFP" width="48" height="48" className="float-left m-1.5 rounded-3xl hover:scale-110 cursor-pointer"/>
-                        <MessageCirclePlus size={36} className="float-right m-2 mt-3 hover:scale-110 cursor-pointer"/>
+                        <img src={userImage} alt="PFP" width="48" height="48" className="float-left m-1.5 rounded-3xl hover:scale-110 cursor-pointer select-none"/>
+                        <MessageCirclePlus size={36} className="float-right m-2 mt-3 hover:scale-110 cursor-pointer" onClick={e => setGroupPopupOpen(true)}/>
+                        <Popup 
+                            open={groupPopupOpen}
+                            closeOnDocumentClick
+                            onClose={ e => setGroupPopupOpen(false) }
+                        >
+                            <div>Me gusta el chorizo</div>
+                        </Popup>
+
+                        
                         <UserRoundPlus size={36} className="float-right m-2 mt-3 hover:scale-110 cursor-pointer"/>
                     </div>
                 
@@ -52,7 +67,7 @@ export default function ChatApp() {
                 
                 <div className="flex flex-shrink-0 flex-nowrap grow min-h-0">
                     <ContactsBar />
-                    <Chat />
+                    <Chat socket={socket!}/>
 
                     <div className="bg-slate-900 border-l border-slate-600 flex flex-col items-center w-1/4">
                         <UserImage size="xl" className="m-4 mb-0" name="Manolo"/>
