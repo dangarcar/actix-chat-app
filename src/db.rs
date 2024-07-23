@@ -50,6 +50,19 @@ pub fn init_database() -> Result<Pool, actix_web::error::Error> {
             CREATE INDEX IF NOT EXISTS users_groups_group_id_index 
             ON users_groups (group_id);
             
+            CREATE TABLE IF NOT EXISTS contacts (
+                user1 INTEGER NOT NULL,
+                user2 INTEGER NOT NULL,
+                FOREIGN KEY(user1) 
+            		REFERENCES users (id)
+                FOREIGN KEY(user2) 
+            		REFERENCES users (id)
+            );
+            CREATE INDEX IF NOT EXISTS contacts_user1_index 
+            ON contacts (user1);
+            CREATE INDEX IF NOT EXISTS contacts_user2_index 
+            ON contacts (user2);
+
             COMMIT;"
         )
         .map_err(|e| { debug!("{e}"); actix_web::error::ErrorInternalServerError("Couldn't create the table")})?;

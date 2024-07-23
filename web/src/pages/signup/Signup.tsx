@@ -99,7 +99,7 @@ export default function SignUp() {
                 </p>
 
                 <button type="submit" className="mt-auto bg-gradient-to-r from-emerald-900 to-emerald-600 rounded text-gray-300 p-1.5 font-bold shadow-glow-1">
-                    Log in
+                    Sign in
                 </button>
 
             </form>

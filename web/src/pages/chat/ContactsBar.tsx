@@ -1,8 +1,9 @@
 import { Search } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import UserImage from "../../components/UserImage";
 import Scrollbars from "react-custom-scrollbars-2";
 import { Message } from "./ChatMessage";
+import { getServerUrl } from "../App";
 
 export interface Contact {
     name: string,
@@ -10,7 +11,7 @@ export interface Contact {
 }
 
 function Contact(contact: Contact) {
-    return <div className="p-2 hover:bg-slate-700 cursor-pointer shrink-0">
+    return <div className="p-2 hover:bg-slate-700 cursor-pointer shrink-0" key={contact.name}>
         <UserImage size={"md"} name={contact.name} className="float-left mr-2"/>
         <p className="font-medium text-slate-100" >{contact.name}</p>
         <p className="text-sm font-light text-slate-300" >{contact.lastMessage.msg}</p>
@@ -19,8 +20,33 @@ function Contact(contact: Contact) {
 
 export default function ContactsBar() {
     const [searchInput, setSearchInput] = useState("");
+    const [lastChats, setLastChats] = useState<Contact[]>([]);
 
-    const lastChats: Contact[] = [{name: "Perico", lastMessage: {msg: "Hola su colega", sender: "perico", time: new Date(2023, 5)}}, {name: "Joselito", lastMessage: {msg: "Buesnas tardes", sender: "paquito", time: new Date(1989)}}];
+    useEffect(() => {
+        const callback = async () => {
+            try {
+                const response = await fetch(getServerUrl("/contacts"));
+
+                if(!response.ok)
+                    throw Error(await response.text());
+
+                let chats: Map<string, Contact> = new Map();
+
+                for(let e of await response.json()) {
+                    chats.set(e, {
+                        name: e,
+                        lastMessage: {msg: "There's no message here", groupId: 0, sender: e, time: new Date()}
+                    });
+                }
+
+                setLastChats([...chats.values()]);
+            } catch(err) {
+                console.warn(err);
+            }
+        };
+
+        callback();
+    }, [setLastChats]);
 
     const handleChange: React.ChangeEventHandler<HTMLInputElement> = e => {
         e.preventDefault();
@@ -43,7 +69,6 @@ export default function ContactsBar() {
         <Scrollbars className="overflow-auto min-h-0"
         renderThumbVertical={ ({...props}) => <div {...props} className="bg-slate-500 rounded-full"/> }>
             <div className="flex flex-col flex-nowrap">
-                {lastChats.map(e => Contact(e))}
                 {lastChats.map(e => Contact(e))}
             </div>
         </Scrollbars>

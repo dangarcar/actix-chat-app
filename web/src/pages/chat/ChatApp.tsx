@@ -9,12 +9,15 @@ import UserImage from "../../components/UserImage";
 import ContactsBar from "./ContactsBar";
 import Chat from "./Chat";
 import Popup from "reactjs-popup";
+import CreateGroup from "./CreateGroup";
+import AddContact from "./AddContact";
 
 export default function ChatApp() {
     const { user, getServerUser } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [socket, setSocket] = useState<WebSocket>();
     const [groupPopupOpen, setGroupPopupOpen] = useState(false);
+    const [contactsPopupOpen, setContactsPopupOpen] = useState(false);
 
     const navigate = useNavigate();
 
@@ -40,22 +43,16 @@ export default function ChatApp() {
     }
 
     return (
-        <div className="h-screen w-screen flex justify-center items-center">
+        <div className="h-screen w-screen flex justify-center items-center" >
             <div className="w-[1600px] h-[850px] shadow-glow-1 rounded flex flex-col">
                 <div className="flex h-16">
                     <div className="w-1/4 bg-lime-800 inline-block align-middle border-r border-slate-400">
                         <img src={userImage} alt="PFP" width="48" height="48" className="float-left m-1.5 rounded-3xl hover:scale-110 cursor-pointer select-none"/>
-                        <MessageCirclePlus size={36} className="float-right m-2 mt-3 hover:scale-110 cursor-pointer" onClick={e => setGroupPopupOpen(true)}/>
-                        <Popup 
-                            open={groupPopupOpen}
-                            closeOnDocumentClick
-                            onClose={ e => setGroupPopupOpen(false) }
-                        >
-                            <div>Me gusta el chorizo</div>
-                        </Popup>
-
+                        <MessageCirclePlus size={36} className="float-right m-2 mt-3 hover:scale-110 cursor-pointer" onClick={e => setGroupPopupOpen(true)}/>                        
+                        <CreateGroup open={groupPopupOpen} setOpen={setGroupPopupOpen}/>
                         
-                        <UserRoundPlus size={36} className="float-right m-2 mt-3 hover:scale-110 cursor-pointer"/>
+                        <UserRoundPlus size={36} className="float-right m-2 mt-3 hover:scale-110 cursor-pointer" onClick={e => setContactsPopupOpen(true)} />
+                        <AddContact open={contactsPopupOpen} setOpen={setContactsPopupOpen} />
                     </div>
                 
                     <div className="grow bg-red-900">

@@ -1,10 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 use actix_session::Session;
-use actix_web::{error, get, post, web, Responder};
+use actix_web::{error, get, post, web, Responder, ResponseError};
+use log::info;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
-use crate::{auth::validate_session, db::{self, Pool}};
+use crate::{auth::validate_session, db::{self, execute, Pool}};
 
 #[derive(Debug, Clone, Serialize)]
 struct Group {
@@ -102,9 +103,64 @@ pub async fn create_group(session: Session, db: web::Data<Pool>, input: web::Jso
     Ok(format!("Group created successfully -> {rows_affected}"))
 }
 
+#[derive(Debug, Deserialize)]
+struct QueryContacts {
+    search: Option<String>
+}
+
+#[get("/contacts")]
+pub async fn get_contacts(session: Session, db: web::Data<Pool>, query: web::Query<QueryContacts>) -> Result<impl Responder, error::Error> {
+    let user_id = validate_session(&session)?;
+    let query = query.into_inner();
+
+    let contacts: Vec<String> = db::execute(&db, move |conn| {
+        let mut stmt = conn.prepare(
+            "SELECT users.username FROM contacts 
+            INNER JOIN users ON users.id = user2
+            WHERE user1 = ?1 AND users.username LIKE (?2);"
+        )?;
+
+        let response = stmt.query_map(
+            params![user_id, format!("%{}%", query.search.unwrap_or(String::new()))], 
+            |row| row.get(0)
+        )?;
+
+        response.into_iter().collect()
+    }).await?;
+
+    Ok(web::Json(contacts))
+}
+
 #[post("/add-contact/{username}")]
 pub async fn add_contact(session: Session, db: web::Data<Pool>, username: web::Path<String>) -> Result<impl Responder, error::Error> {
     let user_id = validate_session(&session)?;
+
+    db::execute(&db, move |conn| {
+        conn.execute(
+            "INSERT INTO contacts (user1, user2) 
+            VALUES (?1, (SELECT id FROM users WHERE username = ?2))", 
+            params![user_id, username.into_inner()]
+        )
+    }).await?;
+
+    Ok("Added to contacts")
+}
+
+#[post("/delete-contact/{username}")]
+pub async fn delete_contact(session: Session, db: web::Data<Pool>, username: web::Path<String>) -> Result<impl Responder, error::Error> {
+    let user_id = validate_session(&session)?;
     
-    Err(error::ErrorNotImplemented("Not implemented")) as Result<&str, error::Error>
+    let rows = db::execute(&db, move |conn| {
+        conn.execute(
+            "DELETE FROM contacts WHERE user1 = ?1 AND user2 = (SELECT id FROM users WHERE username = ?2)", 
+            params![user_id, username.into_inner()]
+        )
+    }).await?;
+
+    if rows == 0 {
+        Err(error::ErrorInternalServerError("It wasn't removed"))
+    } else {
+        Ok("Removed from contacts")
+    }
+
 }

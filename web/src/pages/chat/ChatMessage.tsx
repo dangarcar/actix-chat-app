@@ -10,7 +10,8 @@ export interface Message {
 
 interface ChatMessageProps {
     mine: boolean,
-    msg: Message
+    msg: Message,
+    key: string,
 }
 
 export default function ChatMessage(props: ChatMessageProps) {

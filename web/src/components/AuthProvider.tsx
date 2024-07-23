@@ -44,11 +44,15 @@ export default function AuthProvider(props: {children: JSX.Element}) {
     }
 
     const logout = async () => {
+        const response = await fetch(getServerUrl("/logout"), {
+            method: "DELETE"
+        });
+
+        if(!response.ok)
+            throw Error(await response.text());
+
         setUser(null);
-
         navigate("/login");
-
-        alert("logged out");
     }
 
     const signup = async (user: User) => {
