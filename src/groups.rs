@@ -31,7 +31,7 @@ pub async fn get_user_groups(session: Session, db: web::Data<Pool>) -> Result<im
         let mut stmt = conn.prepare(
             "SELECT groups.id, groups.name, groups.last_time, users.username
             FROM users_groups
-            INNER JOIN users ON users.id = users_groups.user_id
+            INNER JOIN users ON users.username = users_groups.user_id
             INNER JOIN groups ON groups.id = users_groups.group_id AND groups.id IN (SELECT group_id AS id FROM users_groups WHERE user_id = (?1))
             ORDER BY groups.last_time DESC;"
         )?;
@@ -91,9 +91,8 @@ pub async fn create_group(session: Session, db: web::Data<Pool>, input: web::Jso
         for p in input.people.iter() {
             rows = rows + conn.execute(
                 "INSERT INTO users_groups (user_id, group_id, role) 
-                SELECT id AS user_id, (?1) AS group_id, id = (?2) AS role 
-                FROM users WHERE username = (?3);", 
-                params![group_id, user_id, p]
+                VALUES (?1, ?2, ?1 = ?3);", 
+                params![p, group_id, user_id]
             )?;
         }
 
@@ -116,7 +115,7 @@ pub async fn get_contacts(session: Session, db: web::Data<Pool>, query: web::Que
     let contacts: Vec<String> = db::execute(&db, move |conn| {
         let mut stmt = conn.prepare(
             "SELECT users.username FROM contacts 
-            INNER JOIN users ON users.id = user2
+            INNER JOIN users ON users.username = user2
             WHERE user1 = ?1 AND users.username LIKE (?2);"
         )?;
 
@@ -138,7 +137,7 @@ pub async fn add_contact(session: Session, db: web::Data<Pool>, username: web::P
     db::execute(&db, move |conn| {
         conn.execute(
             "INSERT INTO contacts (user1, user2) 
-            VALUES (?1, (SELECT id FROM users WHERE username = ?2))", 
+            VALUES (?1, ?2)", 
             params![user_id, username.into_inner()]
         )
     }).await?;
@@ -152,7 +151,7 @@ pub async fn delete_contact(session: Session, db: web::Data<Pool>, username: web
     
     let rows = db::execute(&db, move |conn| {
         conn.execute(
-            "DELETE FROM contacts WHERE user1 = ?1 AND user2 = (SELECT id FROM users WHERE username = ?2)", 
+            "DELETE FROM contacts WHERE user1 = ?1 AND user2 = (?2)", 
             params![user_id, username.into_inner()]
         )
     }).await?;

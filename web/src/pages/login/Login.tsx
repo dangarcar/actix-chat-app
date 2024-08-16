@@ -26,7 +26,7 @@ export default function Login() {
     return (
         <div className="flex justify-center p-10 bg-slate-950 h-screen">
             <form onSubmit={handleSubmit} className="flex flex-col bg-slate-800 min-w-80 rounded shadow-glow-3 p-4 h-fit">
-                <p className="text-center text-3xl text-white font-bold mb-4">Sign in</p>
+                <p className="text-center text-3xl text-white font-bold mb-4">Log in</p>
 
                 <img src={userImage} width={128} height={128} className="self-center mb-1"/>
 

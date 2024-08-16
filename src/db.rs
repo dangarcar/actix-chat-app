@@ -21,13 +21,10 @@ pub fn init_database() -> Result<Pool, actix_web::error::Error> {
             BEGIN;
             
             CREATE TABLE IF NOT EXISTS users (
-	            id	INTEGER,
 	            username	TEXT NOT NULL UNIQUE,
 	            password	TEXT NOT NULL,
-	            PRIMARY KEY(id AUTOINCREMENT)
+	            PRIMARY KEY(username)
             );
-            CREATE UNIQUE INDEX IF NOT EXISTS username_index 
-            ON users (username);
             
             CREATE TABLE IF NOT EXISTS groups (
 	            id	INTEGER,
@@ -37,13 +34,13 @@ pub fn init_database() -> Result<Pool, actix_web::error::Error> {
             );
             
             CREATE TABLE IF NOT EXISTS users_groups (
-            	user_id	INTEGER NOT NULL,
+            	user_id	TEXT NOT NULL,
             	group_id	INTEGER NOT NULL,
             	role	INTEGER NOT NULL,
             	FOREIGN KEY(group_id) 
             		REFERENCES groups (id)
             	FOREIGN KEY(user_id) 
-            		REFERENCES users (id)
+            		REFERENCES users (username)
             );
             CREATE INDEX IF NOT EXISTS users_groups_user_id_index 
             ON users_groups (user_id);
@@ -51,12 +48,12 @@ pub fn init_database() -> Result<Pool, actix_web::error::Error> {
             ON users_groups (group_id);
             
             CREATE TABLE IF NOT EXISTS contacts (
-                user1 INTEGER NOT NULL,
-                user2 INTEGER NOT NULL,
+                user1 TEXT NOT NULL,
+                user2 TEXT NOT NULL,
                 FOREIGN KEY(user1) 
-            		REFERENCES users (id)
+            		REFERENCES users (username)
                 FOREIGN KEY(user2) 
-            		REFERENCES users (id)
+            		REFERENCES users (username)
             );
             CREATE INDEX IF NOT EXISTS contacts_user1_index 
             ON contacts (user1);

@@ -4,10 +4,11 @@ import EmojiPicker, { Emoji, EmojiStyle, Theme } from "emoji-picker-react";
 import { useAuth } from "../../components/AuthProvider";
 import Scrollbars from "react-custom-scrollbars-2";
 import ChatMessage, { Message } from "./ChatMessage";
-import { set } from "react-hook-form";
+import { IChatInfo } from "./ChatInfo";
 
 interface ChatData {
-    socket: WebSocket
+    socket: WebSocket,
+    currentChat: IChatInfo,
 }
 
 export default function Chat(data: ChatData) {
@@ -37,12 +38,12 @@ export default function Chat(data: ChatData) {
         scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
     , [scrollRef]);
 
-    data.socket.onmessage = e => {
+    data.socket.onmessage = e => { //TODO: this must be a dispatcher
         const msg: Message = {
             msg: e.data,
-            sender: "Persona 1",
-            time: new Date(),
-            groupId: 1
+            sender: data.currentChat.name,
+            time: e.timeStamp, //FIXME:
+            recv: user?.username!
         }
 
         messageList.push(msg);
@@ -59,8 +60,8 @@ export default function Chat(data: ChatData) {
         const msg: Message = {
             msg: message,
             sender: user?.username!,
-            time: new Date(),
-            groupId: 1
+            time: new Date().getTime(),
+            recv: data.currentChat.name
         }
         messageList.push(msg);
         setMessageList(messageList)
@@ -73,7 +74,7 @@ export default function Chat(data: ChatData) {
         <Scrollbars className="max-h-[730px] overflow-y-auto overflow-x-hidden"
         renderThumbVertical={ ({...props}) => <div {...props} className="bg-slate-500 rounded-full"/> }>
             <div ref={scrollRef} className="flex flex-col gap-2 p-2 pr-8">{
-                messageList.map(e => <ChatMessage key={e.time.getTime().toString()} mine={e.sender === user?.username} msg={e}/>)
+                messageList.map(e => <ChatMessage key={new Date(e.time).getTime().toString()} mine={e.sender === user?.username} msg={e}/>)
             }</div>
         </Scrollbars>
 

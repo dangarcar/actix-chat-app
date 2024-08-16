@@ -3,15 +3,19 @@ import UserImage from "../../components/UserImage"
 
 export interface Message {
     msg: string,
-    time: Date,
+    time: number,
     sender: string,
-    groupId: number,
+    recv: string,
 }
 
 interface ChatMessageProps {
     mine: boolean,
     msg: Message,
     key: string,
+}
+
+function unixTimeToHour(time: number) {
+    return new Date(time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
 export default function ChatMessage(props: ChatMessageProps) {
@@ -22,7 +26,7 @@ export default function ChatMessage(props: ChatMessageProps) {
         {!props.mine && <p className="text-sm font-semibold" >{props.msg.sender}</p>}
         <p className={allEmoji? "text-3xl":"text-sm"} >
             {props.msg.msg} 
-            <sub className="text-sm text-slate-400 translate-x-4 translate-y-4 select-none">&ensp;{props.msg.time.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</sub>
+            <sub className="text-sm text-slate-400 translate-x-4 translate-y-4 select-none">&ensp;{unixTimeToHour(props.msg.time)}</sub>
         </p>
     </div>;
 

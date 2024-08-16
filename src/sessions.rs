@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use actix::{Actor, ActorContext, Addr, AsyncContext, Handler, Running, StreamHandler};
+use actix::{Actor, ActorContext, Addr, AsyncContext, Running, StreamHandler};
 use actix_web_actors::ws;
 use log::{debug, info};
 
@@ -10,7 +10,7 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct WsChatSession {
-    pub id: u64,
+    pub name: String,
     pub hb: Instant,
     pub addr: Addr<ChatServer>
 }   
@@ -20,7 +20,7 @@ impl WsChatSession {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
                 debug!("Websocket Client heartbeat failed, disconnecting!");
-                act.addr.do_send(Disconnect { id: act.id });
+                act.addr.do_send(Disconnect { id: act.name.clone() });
                 ctx.stop();
                 return;
             }
@@ -35,22 +35,11 @@ impl Actor for WsChatSession {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         self.hb(ctx);
-
-        let addr = ctx.address();
-
     }
 
     fn stopping(&mut self, _: &mut Self::Context) -> Running {
-        self.addr.do_send(Disconnect { id: self.id });
+        self.addr.do_send(Disconnect { id: self.name.clone() });
         Running::Stop
-    }
-}
-
-impl Handler<WsMessage> for WsChatSession {
-    type Result = ();
-
-    fn handle(&mut self, msg: WsMessage, ctx: &mut Self::Context) {
-        ctx.text(msg.text);
     }
 }
 
@@ -84,8 +73,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
             ws::Message::Nop => (),
             
             ws::Message::Text(text) => {
-                info!("Text msg: {text}");
-                ctx.text("Replied");
+                let msg: WsMessage = serde_json::from_str(&text).unwrap();
+                debug!("Deserialized msg: {msg:?}");
+                self.addr.do_send(msg);
             }
         }
     }

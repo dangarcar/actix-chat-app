@@ -11,7 +11,6 @@ const SESSION_KEY: &'static str = "user_id";
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct User {
-    id: u64, 
     username: String,
     password: String,
 }
@@ -37,10 +36,10 @@ pub async fn signup(input: web::Json<SignUpInput>, session: Session, db: web::Da
     
     let user_id = db::execute(&db, move |conn| {
         conn.query_row(
-            "INSERT INTO users (username, password) VALUES (?1, ?2) RETURNING (id)",
+            "INSERT INTO users (username, password) VALUES (?1, ?2) RETURNING (username)",
             params![input.username, hashed_password],
             |row| row.get(0)
-        ) as Result<u64, rusqlite::Error>
+        ) as Result<String, rusqlite::Error>
     })
     .await
     .map_err(|_| error::ErrorUnauthorized("Couldn't create user"))?;
@@ -59,14 +58,16 @@ struct LoginData {
 #[post("/login")]
 pub async fn login(input: web::Json<LoginData>, session: Session, db: web::Data<Pool>) -> Result<impl Responder, error::Error> {    
     let username = input.username.clone();
+
+    info!("{username}");
+
     let user = db::execute(&db, move |conn| {
         conn.query_row(
-            "SELECT id, username, password FROM users WHERE username = (?1)",
+            "SELECT username, password FROM users WHERE username = (?1)",
             params![username],
             |row| Ok(User {
-                id: row.get(0)?,
-                username: row.get(1)?,
-                password: row.get(2)?
+                username: row.get(0)?,
+                password: row.get(1)?
             })
         )
     })
@@ -80,7 +81,7 @@ pub async fn login(input: web::Json<LoginData>, session: Session, db: web::Data<
     
     match Argon2::default().verify_password(input.password.as_bytes(), &hashed_password) {
         Ok(_) => {
-            session.insert(SESSION_KEY, user.id).unwrap();
+            session.insert(SESSION_KEY, user.username).unwrap();
             Ok("Welcome!")
         }
         Err(_) => {
@@ -98,12 +99,12 @@ pub async fn logout(session: Session) -> Result<impl Responder, error::Error> {
 
 #[delete("/deleteuser")]
 pub async fn delete_user(session: Session, db: web::Data<Pool>) -> Result<impl Responder, error::Error> {
-    let id: Option<u64> = session.get(SESSION_KEY).unwrap_or(None);
+    let username = validate_session(&session)?;
     
     db::execute(&db, move |conn| {
         conn.execute(
-            "DELETE FROM users WHERE id = (?1)", 
-            params![id]
+            "DELETE FROM users WHERE username = (?1)", 
+            params![username]
         )
     }).await?;
     
@@ -119,9 +120,9 @@ struct UserResponse {
 
 #[get("/user")]
 async fn get_user(session: Session, db: web::Data<Pool>) -> Result<impl Responder, error::Error> {
-    let id = validate_session(&session)?;
+    let username = validate_session(&session)?;
 
-    let user_response = db::execute(&db, move |conn| {
+    /*let user_response = db::execute(&db, move |conn| {
         conn.query_row(
             "SELECT (username) FROM users WHERE id = (?1)",
             params![id], 
@@ -129,13 +130,13 @@ async fn get_user(session: Session, db: web::Data<Pool>) -> Result<impl Responde
                 username: row.get(0)?
             })
         )
-    }).await?;
+    }).await?;*/
 
-    Ok(web::Json(user_response))
+    Ok(web::Json(username))
 }
 
-pub fn validate_session(session: &Session) -> Result<u64, error::Error> {
-    let id: Option<u64> = session.get(SESSION_KEY).unwrap_or(None);
+pub fn validate_session(session: &Session) -> Result<String, error::Error> {
+    let id: Option<String> = session.get(SESSION_KEY).unwrap_or(None);
 
     match id {
         Some(id) => {

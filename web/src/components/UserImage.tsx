@@ -1,34 +1,17 @@
 import React from "react";
 
-const COLOR_PALETTE = {
-    "A": "bg-[#170d1c]", 
-    "B": "bg-[#312647]", 
-    "C": "bg-[#574e69]", 
-    "D": "bg-[#75728c]", 
-    "E": "bg-[#451a45]",
-    "F": "bg-[#75203f]", 
-    "G": "bg-[#992f2f]", 
-    "H": "bg-[#bf674c]",
-    "I": "bg-[#e6bb65]",
-    "J": "bg-[#c77394]",
-    "K": "bg-[#191e4f]",
-    "L": "bg-[#2a4d73]",
-    "M": "bg-[#467394]",
-    "N": "bg-[#549dbf]",
-    "O": "bg-[#6dbadb]",
-    "P": "bg-[#85d5de]",
-    "Q": "bg-[#929fa3]",
-    "R": "bg-[#30786e]",
-    "S": "bg-[#51a35b]",
-    "T": "bg-[#8dc756]",
-    "U": "bg-[#401d2e]",
-    "V": "bg-[#57373e]",
-    "W": "bg-[#914e3a]",
-    "X": "bg-[#c7885e]",
-    "Y": "bg-[#ffbd8a]",
-    "Z": "bg-[#eb9b9b]",
-    def: "bg-[#8c5c7f]"
-} as const;
+function nameToColor(name: string) {
+    if(name.length === 0)
+        return 0;
+
+    let hash = 0;
+    for(let c of name) {
+        hash = ((hash << 5) - hash) + c.charCodeAt(0);
+        hash &= 0xFFFFFF;
+    }
+
+    return hash;
+}
 
 interface UserImageProps {
     size: "sm" | "md" | "xl",
@@ -50,10 +33,40 @@ export default function UserImage(data: UserImageProps) {
 
     const char = data.name.charAt(0).toLocaleUpperCase();
 
-    return <div className={`${data.className} ${char in COLOR_PALETTE? COLOR_PALETTE[char as keyof typeof COLOR_PALETTE] : COLOR_PALETTE.def} ${sizes[data.size]}
-    rounded-full border-2 border-slate-100`} >
+    return <div className={`${data.className} ${sizes[data.size]}
+    rounded-full border-2 border-slate-100`} style={{backgroundColor: '#' + nameToColor(data.name).toString(16)}}>
         <p className={"font-bold text-center cursor-default " + pSizes[data.size]}>
             {char}
         </p>
     </div>;
 }
+
+const COLOR_PALETTE = [
+    "bg-[#170d1c]", 
+    "bg-[#312647]", 
+    "bg-[#574e69]", 
+    "bg-[#75728c]", 
+    "bg-[#451a45]",
+    "bg-[#75203f]", 
+    "bg-[#992f2f]", 
+    "bg-[#bf674c]",
+    "bg-[#e6bb65]",
+    "bg-[#c77394]",
+    "bg-[#191e4f]",
+    "bg-[#2a4d73]",
+    "bg-[#467394]",
+    "bg-[#549dbf]",
+    "bg-[#6dbadb]",
+    "bg-[#85d5de]",
+    "bg-[#929fa3]",
+    "bg-[#30786e]",
+    "bg-[#51a35b]",
+    "bg-[#8dc756]",
+    "bg-[#401d2e]",
+    "bg-[#57373e]",
+    "bg-[#914e3a]",
+    "bg-[#c7885e]",
+    "bg-[#ffbd8a]",
+    "bg-[#eb9b9b]",
+    "bg-[#8c5c7f]"
+];

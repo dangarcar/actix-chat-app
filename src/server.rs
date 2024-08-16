@@ -1,30 +1,34 @@
 use std::collections::HashMap;
 
 use actix::{Actor, Context, Handler, Message, Recipient};
-use log::debug;
+use log::{debug, warn};
+use serde::{Deserialize, Serialize};
 
-#[derive(Message)]
+#[derive(Message, Deserialize, Serialize, Clone, Debug)]
 #[rtype(result = "()")]
 pub struct WsMessage {
-    pub text: String,
+    pub msg: String,
+    pub sender: String,
+    pub time: i64,
+    pub recv: String,
 }
 
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Connect {
-    pub id: u64,
+    pub id: String,
     pub addr: Recipient<WsMessage>,
 }
 
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct Disconnect {
-    pub id: u64,
+    pub id: String,
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct ChatServer {
-    sessions: HashMap<u64, Recipient<WsMessage>>
+    pub sessions: HashMap<String, Recipient<WsMessage>>
 }
 
 impl Actor for ChatServer {
@@ -49,4 +53,12 @@ impl Handler<Disconnect> for ChatServer {
 
         self.sessions.remove(&msg.id);
     }
+}
+
+impl Handler<WsMessage> for ChatServer {
+    type Result = ();
+    
+    fn handle(&mut self, msg: WsMessage, ctx: &mut Self::Context) -> Self::Result {
+        warn!("Sent message {msg:?}");
+    }    
 }

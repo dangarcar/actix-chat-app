@@ -38,14 +38,14 @@ async fn chat_route(
     req: HttpRequest,
     stream: web::Payload,
     srv: web::Data<Addr<ChatServer>>,
-    session: Session
+    session: Session,
 ) -> Result<HttpResponse, actix_web::Error> {
     let user_id = validate_session(&session)?;
     debug!("User id in chat route is: {user_id}");
 
     ws::start(
         WsChatSession { 
-            id: user_id, 
+            name: user_id, 
             hb: Instant::now(), 
             addr: srv.get_ref().clone() 
         },
