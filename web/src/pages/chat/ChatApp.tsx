@@ -12,7 +12,7 @@ import TopBar from "./TopBar";
 import ChatInfo, { IChatInfo } from "./ChatInfo";
 
 export default function ChatApp() {
-    const { user, getServerUser, logout } = useAuth();
+    const { getServerUser, logout } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [socket, setSocket] = useState<WebSocket>();
     const [groupPopupOpen, setGroupPopupOpen] = useState(false);

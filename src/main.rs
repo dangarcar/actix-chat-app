@@ -8,9 +8,9 @@ use actix_web_actors::ws;
 use auth::{delete_user, get_user, login, logout, signup, validate_session};
 use db::init_database;
 use dotenv::dotenv;
-use groups::{add_contact, create_group, delete_contact, get_contacts, get_user_groups};
+use groups::{add_contact, contact_info, create_group, delete_contact, get_contacts, get_user_groups};
 use local_ip_address::local_ip;
-use log::{debug, info, LevelFilter};
+use log::{info, LevelFilter};
 use server::ChatServer;
 use sessions::WsChatSession;
 
@@ -41,7 +41,6 @@ async fn chat_route(
     session: Session,
 ) -> Result<HttpResponse, actix_web::Error> {
     let user_id = validate_session(&session)?;
-    debug!("User id in chat route is: {user_id}");
 
     ws::start(
         WsChatSession { 
@@ -69,7 +68,7 @@ async fn main() -> std::io::Result<()> {
 
     let pool = init_database().unwrap();
 
-    let chat_server = ChatServer::default().start();
+    let chat_server = ChatServer {sessions: Default::default(), db: pool.clone() }.start();
 
     HttpServer::new(move || {
         let generated = generate();
@@ -101,6 +100,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_contacts)
             .service(add_contact)
             .service(delete_contact)
+            .service(contact_info)
 
             //GROUPS
             .service(get_user_groups)

@@ -23,6 +23,7 @@ pub fn init_database() -> Result<Pool, actix_web::error::Error> {
             CREATE TABLE IF NOT EXISTS users (
 	            username	TEXT NOT NULL UNIQUE,
 	            password	TEXT NOT NULL,
+                last_time   INTEGER,
 	            PRIMARY KEY(username)
             );
             
@@ -60,6 +61,21 @@ pub fn init_database() -> Result<Pool, actix_web::error::Error> {
             CREATE INDEX IF NOT EXISTS contacts_user2_index 
             ON contacts (user2);
 
+            CREATE TABLE IF NOT EXISTS msgs (
+            	msg		TEXT,
+            	timestamp	INTEGER,
+            	sender	TEXT,
+            	recv	TEXT,
+            	FOREIGN KEY(sender) 
+            		REFERENCES users (username)
+            	FOREIGN KEY(recv) 
+                    REFERENCES users (username)
+            );
+            CREATE INDEX IF NOT EXISTS msgs_sender_index 
+            ON msgs (sender);
+            CREATE INDEX IF NOT EXISTS msgs_recv_index 
+            ON msgs (recv);
+
             COMMIT;"
         )
         .map_err(|e| { debug!("{e}"); actix_web::error::ErrorInternalServerError("Couldn't create the table")})?;
@@ -88,6 +104,6 @@ where
     .await?
     .map_err(|err| {
         info!("{err}");
-        actix_web::error::ErrorInternalServerError("Internal server error") 
+        actix_web::error::ErrorInternalServerError("Database error") 
     })
 }

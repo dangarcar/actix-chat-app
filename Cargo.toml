@@ -24,7 +24,7 @@ local-ip-address = "0.6"
 
 r2d2 = "0.8"
 r2d2_sqlite = "0.24"
-rusqlite = "0.31"
+rusqlite = { version = "0.31", features = ["bundled"] }
 
 argon2 = { version = "0.5.3", features = ["password-hash"] }
 

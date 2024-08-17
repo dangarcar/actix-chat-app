@@ -1,11 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use actix_session::Session;
-use actix_web::{error, get, post, web, Responder, ResponseError};
-use log::info;
+use actix_web::{error, get, post, web, Responder};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
-use crate::{auth::validate_session, db::{self, execute, Pool}};
+use crate::{auth::validate_session, db::{self, Pool}};
 
 #[derive(Debug, Clone, Serialize)]
 struct Group {
@@ -128,6 +127,37 @@ pub async fn get_contacts(session: Session, db: web::Data<Pool>, query: web::Que
     }).await?;
 
     Ok(web::Json(contacts))
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Contact {
+    name: String,
+    last_time: Option<u64>,
+    bio: String,
+}
+
+#[get("/contact/{username}")]
+pub async fn contact_info(session: Session, db: web::Data<Pool>, username: web::Path<String>) -> Result<impl Responder, error::Error> {
+    let user_id = validate_session(&session)?;
+
+    let contact = db::execute(&db, move |conn| {
+        let name = username.into_inner();
+
+        conn.query_row(
+            "SELECT users.username, users.last_time FROM contacts 
+            INNER JOIN users ON users.username = user2
+            WHERE user1 = ?1 AND users.username = ?2;", 
+            params![user_id, name.clone()],
+            |row| Ok(Contact {
+                name: row.get(0)?,
+                last_time: row.get(1)?,
+                bio: format!("Hello, I'm {}", name.clone()) //TODO: A custom bio
+            })
+        )
+    }).await?;
+
+    Ok(web::Json(contact))
 }
 
 #[post("/add-contact/{username}")]

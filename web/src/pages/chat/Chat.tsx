@@ -67,6 +67,8 @@ export default function Chat(data: ChatData) {
         setMessageList(messageList)
         setMessage("");
 
+        console.log(user);
+
         data.socket.send(JSON.stringify(msg));
     }
 

@@ -1,3 +1,5 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use actix_session::Session;
 use actix_web::{ delete, error, get, post, web, Responder };
 use argon2::{ password_hash::{ rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString }, Argon2 };
@@ -36,8 +38,8 @@ pub async fn signup(input: web::Json<SignUpInput>, session: Session, db: web::Da
     
     let user_id = db::execute(&db, move |conn| {
         conn.query_row(
-            "INSERT INTO users (username, password) VALUES (?1, ?2) RETURNING (username)",
-            params![input.username, hashed_password],
+            "INSERT INTO users (username, password, last_time) VALUES (?1, ?2, ?3) RETURNING (username)",
+            params![input.username, hashed_password, SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64],
             |row| row.get(0)
         ) as Result<String, rusqlite::Error>
     })
@@ -119,7 +121,7 @@ struct UserResponse {
 }
 
 #[get("/user")]
-async fn get_user(session: Session, db: web::Data<Pool>) -> Result<impl Responder, error::Error> {
+async fn get_user(session: Session, _db: web::Data<Pool>) -> Result<impl Responder, error::Error> {
     let username = validate_session(&session)?;
 
     /*let user_response = db::execute(&db, move |conn| {
@@ -132,7 +134,7 @@ async fn get_user(session: Session, db: web::Data<Pool>) -> Result<impl Responde
         )
     }).await?;*/
 
-    Ok(web::Json(username))
+    Ok(web::Json(UserResponse { username }))
 }
 
 pub fn validate_session(session: &Session) -> Result<String, error::Error> {

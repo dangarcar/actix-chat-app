@@ -86,7 +86,7 @@ export default function AuthProvider(props: {children: JSX.Element}) {
 
         const json = await response.json();
 
-        console.log(json.username);
+        console.log(json);
         setUser({
             username: json.username,
             password: ""

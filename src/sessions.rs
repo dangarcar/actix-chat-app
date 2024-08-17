@@ -1,10 +1,10 @@
 use std::time::{Duration, Instant};
 
-use actix::{Actor, ActorContext, Addr, AsyncContext, Running, StreamHandler};
+use actix::{Actor, ActorContext, Addr, AsyncContext, Handler, Running, StreamHandler};
 use actix_web_actors::ws;
 use log::{debug, info};
 
-use crate::server::{ChatServer, Disconnect, WsMessage};
+use crate::server::{ChatServer, Connect, Disconnect, WsMessage};
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -35,11 +35,25 @@ impl Actor for WsChatSession {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         self.hb(ctx);
+
+        let addr = ctx.address();
+        self.addr.do_send(Connect {
+            id: self.name.clone(),
+            addr: addr.recipient(),
+        });
     }
 
     fn stopping(&mut self, _: &mut Self::Context) -> Running {
         self.addr.do_send(Disconnect { id: self.name.clone() });
         Running::Stop
+    }
+}
+
+impl Handler<WsMessage> for WsChatSession {
+    type Result = ();
+
+    fn handle(&mut self, msg: WsMessage, ctx: &mut Self::Context) {
+        ctx.text(msg.msg);
     }
 }
 
@@ -53,7 +67,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
             Ok(msg) => msg
         };
 
-        debug!("Websocket message: {msg:?}");
         match msg {
             ws::Message::Ping(msg) => {
                 self.hb = Instant::now();
