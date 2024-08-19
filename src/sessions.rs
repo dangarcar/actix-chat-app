@@ -53,7 +53,10 @@ impl Handler<WsMessage> for WsChatSession {
     type Result = ();
 
     fn handle(&mut self, msg: WsMessage, ctx: &mut Self::Context) {
-        ctx.text(msg.msg);
+        let serialized = serde_json::to_string(&msg).unwrap();
+        debug!("Serialized message: {serialized}");
+        
+        ctx.text(serialized);
     }
 }
 

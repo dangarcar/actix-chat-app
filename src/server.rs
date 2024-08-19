@@ -15,6 +15,7 @@ pub struct WsMessage {
     pub sender: String,
     pub time: u64,
     pub recv: String,
+    pub read: bool,
 }
 
 #[derive(Message)]
@@ -43,8 +44,20 @@ impl Actor for ChatServer {
 impl Handler<Connect> for ChatServer {
     type Result = ();
 
-    fn handle(&mut self, msg: Connect, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
         info!("{} connected to the server", msg.id);
+
+        let username = msg.id.clone();
+        let db = self.db.clone();
+        let fut = async move {
+            db::execute(&db, move |conn| {
+                conn.execute(
+                    "UPDATE users SET last_time = ?1 WHERE username = ?2", 
+                    params![None::<u64>, username]
+                )
+            }).await.unwrap();
+        };
+        ctx.spawn(actix::fut::wrap_future(fut));
 
         self.sessions.insert(msg.id, msg.addr);
     }
@@ -79,12 +92,7 @@ impl Handler<WsMessage> for ChatServer {
         warn!("Sent message {msg:?}");
 
         match self.sessions.get(&msg.recv) {
-            Some(addr) => 
-                addr.do_send(WsMessage { 
-                    sender: msg.recv.clone(), 
-                    recv: msg.sender.clone(),
-                    ..msg.clone()
-                }),
+            Some(addr) => addr.do_send(msg.clone()),
             None => debug!("Not propagated!!")
         };
 
@@ -92,8 +100,8 @@ impl Handler<WsMessage> for ChatServer {
         let fut = async move {
             db::execute(&db, move |conn| {
                 conn.execute(
-                    "INSERT INTO msgs (sender, recv, msg, timestamp) 
-                    VALUES (?1, ?2, ?3, ?4);", 
+                    "INSERT INTO msgs (sender, recv, msg, timestamp, read) 
+                    VALUES (?1, ?2, ?3, ?4, 0);", 
                     params![msg.sender, msg.recv, msg.msg, msg.time]
                 )
             }).await.unwrap();

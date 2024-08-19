@@ -4,7 +4,7 @@ import { useAuth } from "../../components/AuthProvider";
 import Loading from "../../components/Loading";
 import { MessageCirclePlus, UserRoundPlus } from "lucide-react";
 import userImage from "../../assets/user.png";
-import ContactsBar from "./ContactsBar";
+import ContactsBar, { IChatPreview } from "./ContactsBar";
 import Chat from "./Chat";
 import CreateGroup from "./CreateGroup";
 import AddContact from "./AddContact";
@@ -18,6 +18,7 @@ export default function ChatApp() {
     const [groupPopupOpen, setGroupPopupOpen] = useState(false);
     const [contactsPopupOpen, setContactsPopupOpen] = useState(false);
     const [currentChat, setCurrentChat] = useState<IChatInfo>();
+    const [lastChats, setLastChats] = useState<Map<string, IChatPreview>>(new Map());
 
     const navigate = useNavigate();
 
@@ -59,10 +60,10 @@ export default function ChatApp() {
                 </div>
                 
                 <div className="flex flex-shrink-0 flex-nowrap grow min-h-0">
-                    <ContactsBar setCurrentChat={setCurrentChat}/>
+                    <ContactsBar setCurrentChat={setCurrentChat} lastChats={lastChats} setLastChats={setLastChats}/>
 
                     {currentChat? <>
-                        <Chat socket={socket!} currentChat={currentChat}/>
+                        <Chat socket={socket!} currentChat={currentChat} lastChats={lastChats} setLastChats={setLastChats}/>
                         <ChatInfo {...currentChat}/> 
                     </>: <></>}
                 </div>

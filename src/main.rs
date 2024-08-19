@@ -2,7 +2,7 @@ use std::{env, time::Instant};
 
 use actix::{Actor, Addr};
 use actix_session::{storage::CookieSessionStore, Session, SessionMiddleware};
-use actix_web::{cookie::Key, get, middleware::Logger, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{cookie::Key, get, middleware::Logger, web, App, HttpRequest, HttpResponse, HttpServer};
 
 use actix_web_actors::ws;
 use auth::{delete_user, get_user, login, logout, signup, validate_session};
@@ -11,6 +11,7 @@ use dotenv::dotenv;
 use groups::{add_contact, contact_info, create_group, delete_contact, get_contacts, get_user_groups};
 use local_ip_address::local_ip;
 use log::{info, LevelFilter};
+use msgs::{get_messages, get_unread};
 use server::ChatServer;
 use sessions::WsChatSession;
 
@@ -22,16 +23,7 @@ mod db;
 mod groups;
 mod sessions;
 mod server;
-
-#[get("/hello/{name}")]
-async fn greet(name: web::Path<String>) -> impl Responder {
-    format!("Hello {name}!")
-}
-
-#[get("/secure")]
-async fn secure() -> impl Responder {
-    "This is definitely secure"
-}
+mod msgs;
 
 #[get("/ws")]
 async fn chat_route(
@@ -85,8 +77,6 @@ async fn main() -> std::io::Result<()> {
                 .build()
             )
             .wrap(Logger::default())
-            .service(greet)
-            .service(secure)
             .service(chat_route)
             
             //USER
@@ -106,6 +96,10 @@ async fn main() -> std::io::Result<()> {
             .service(get_user_groups)
             .service(create_group)
             
+            //MESSAGES
+            .service(get_messages)
+            .service(get_unread)
+
             .service(actix_web_static_files::ResourceFiles::new("/", generated))
     })
     .bind(("0.0.0.0", port))?

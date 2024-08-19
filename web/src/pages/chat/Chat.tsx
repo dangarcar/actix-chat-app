@@ -5,17 +5,40 @@ import { useAuth } from "../../components/AuthProvider";
 import Scrollbars from "react-custom-scrollbars-2";
 import ChatMessage, { Message } from "./ChatMessage";
 import { IChatInfo } from "./ChatInfo";
+import User from "../../components/User";
+import { IChatPreview } from "./ContactsBar";
 
 interface ChatData {
     socket: WebSocket,
     currentChat: IChatInfo,
+    lastChats: Map<string, IChatPreview>,
+    setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>,
+}
+
+function MessagesScroll({currentChat, user}: {currentChat: IChatInfo, user: User}) {
+    return <>{
+        currentChat.msgs.flatMap((e, i) => {
+            const chat = <ChatMessage key={e.time.toString()} mine={e.sender === user?.username} msg={e}/>;
+            if(i >= currentChat.msgs.length-1) 
+                return [chat];
+
+            const curr = new Date(e.time);
+            const next = new Date(currentChat.msgs[i+1].time);
+
+            if(curr.getDay() === next.getDay())
+                return [chat];
+
+            return [chat, <fieldset key={`Separator ${next.toDateString()}`} className="border-t-[1px] text-center border-slate-500">
+                <legend className="px-2">{next.toLocaleDateString()}</legend>
+            </fieldset>];                
+        })
+    }</>
 }
 
 export default function Chat(data: ChatData) {
     const { user } = useAuth();
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [message, setMessage] = useState("");
-    const [messageList, setMessageList] = useState<Message[]>([]); 
     const [messageUpdate, setMessageUpdate] = useState(true)
 
     const ref = useRef<HTMLDivElement>(null);
@@ -36,20 +59,15 @@ export default function Chat(data: ChatData) {
     const scrollRef = useRef<HTMLDivElement>(null); 
     useEffect(() => 
         scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-    , [scrollRef]);
+    , [scrollRef, messageUpdate, data]);
 
     data.socket.onmessage = e => { //TODO: this must be a dispatcher
-        const msg: Message = {
-            msg: e.data,
-            sender: data.currentChat.name,
-            time: e.timeStamp, //FIXME:
-            recv: user?.username!
-        }
+        const msg: Message = JSON.parse(e.data);
 
-        messageList.push(msg);
-        console.log(messageList);
-        
-        setMessageList(messageList);
+        data.lastChats.get(msg.sender)!.unread++;
+        data.setLastChats(data.lastChats);
+
+        data.currentChat.msgs.push(msg);        
         setMessageUpdate(!messageUpdate); //To refresh inmediately
     };
 
@@ -61,13 +79,12 @@ export default function Chat(data: ChatData) {
             msg: message,
             sender: user?.username!,
             time: new Date().getTime(),
-            recv: data.currentChat.name
+            recv: data.currentChat.name,
+            read: false,
         }
-        messageList.push(msg);
-        setMessageList(messageList)
+        data.currentChat.msgs.push(msg);
+        setMessageUpdate(!messageUpdate);
         setMessage("");
-
-        console.log(user);
 
         data.socket.send(JSON.stringify(msg));
     }
@@ -75,9 +92,9 @@ export default function Chat(data: ChatData) {
     return <div className="bg-slate-950 h-full flex flex-col grow overflow-x-hidden">
         <Scrollbars className="max-h-[730px] overflow-y-auto overflow-x-hidden"
         renderThumbVertical={ ({...props}) => <div {...props} className="bg-slate-500 rounded-full"/> }>
-            <div ref={scrollRef} className="flex flex-col gap-2 p-2 pr-8">{
-                messageList.map(e => <ChatMessage key={new Date(e.time).getTime().toString()} mine={e.sender === user?.username} msg={e}/>)
-            }</div>
+            <div ref={scrollRef} className="flex flex-col gap-2 p-2 pr-8">
+                <MessagesScroll currentChat={data.currentChat} user={user!}/>
+            </div>
         </Scrollbars>
 
         <div className="w-full p-2 bg-slate-700 flex gap-2 justify-center">

@@ -95,7 +95,7 @@ export default function SignUp() {
                 
                 <p className="text-gray-400 text-sm ml-1 mb-10">
                     Already have an account? 
-                    <Link to="/login" className="text-gray-200"> Sign in</Link>
+                    <Link to="/login" className="text-gray-200"> Log in</Link>
                 </p>
 
                 <button type="submit" className="mt-auto bg-gradient-to-r from-emerald-900 to-emerald-600 rounded text-gray-300 p-1.5 font-bold shadow-glow-1">

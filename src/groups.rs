@@ -152,7 +152,7 @@ pub async fn contact_info(session: Session, db: web::Data<Pool>, username: web::
             |row| Ok(Contact {
                 name: row.get(0)?,
                 last_time: row.get(1)?,
-                bio: format!("Hello, I'm {}", name.clone()) //TODO: A custom bio
+                bio: format!("Hello, I'm {}", name.clone()), //TODO: A custom bio
             })
         )
     }).await?;
@@ -163,6 +163,10 @@ pub async fn contact_info(session: Session, db: web::Data<Pool>, username: web::
 #[post("/add-contact/{username}")]
 pub async fn add_contact(session: Session, db: web::Data<Pool>, username: web::Path<String>) -> Result<impl Responder, error::Error> {
     let user_id = validate_session(&session)?;
+
+    if user_id == username.clone() {
+        return Err(error::ErrorBadRequest("You can't be a contact of yourself"));
+    }
 
     db::execute(&db, move |conn| {
         conn.execute(

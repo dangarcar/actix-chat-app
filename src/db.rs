@@ -66,6 +66,7 @@ pub fn init_database() -> Result<Pool, actix_web::error::Error> {
             	timestamp	INTEGER,
             	sender	TEXT,
             	recv	TEXT,
+                read    INTEGER,
             	FOREIGN KEY(sender) 
             		REFERENCES users (username)
             	FOREIGN KEY(recv) 

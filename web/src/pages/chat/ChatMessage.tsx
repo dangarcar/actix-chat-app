@@ -6,6 +6,7 @@ export interface Message {
     time: number,
     sender: string,
     recv: string,
+    read: boolean
 }
 
 interface ChatMessageProps {

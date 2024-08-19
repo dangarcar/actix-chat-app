@@ -17,6 +17,7 @@ export default function AddContact({open, setOpen}) {
             if(!response.ok)
                 throw Error(await response.text());
             
+            location.reload();
             setOpen(false);
         } catch(err) {
             if(err instanceof Error)
@@ -25,10 +26,6 @@ export default function AddContact({open, setOpen}) {
 
         setValue('contact', '');
     }
-    
-    useEffect(() => {
-
-    });
     
     return <Popup 
         open={open}
