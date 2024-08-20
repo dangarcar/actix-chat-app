@@ -8,13 +8,6 @@ import { IChatInfo } from "./ChatInfo";
 import User from "../../components/User";
 import { IChatPreview } from "./ContactsBar";
 
-interface ChatData {
-    socket: WebSocket,
-    currentChat: IChatInfo,
-    lastChats: Map<string, IChatPreview>,
-    setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>,
-}
-
 function MessagesScroll({currentChat, user}: {currentChat: IChatInfo, user: User}) {
     return <>{
         currentChat.msgs.flatMap((e, i) => {
@@ -35,11 +28,14 @@ function MessagesScroll({currentChat, user}: {currentChat: IChatInfo, user: User
     }</>
 }
 
-export default function Chat(data: ChatData) {
+export default function Chat({socket, currentChat, setCurrentChat}: {
+    socket: WebSocket,
+    currentChat: IChatInfo,
+    setCurrentChat: React.Dispatch<React.SetStateAction<IChatInfo | undefined>>,
+}) {
     const { user } = useAuth();
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [message, setMessage] = useState("");
-    const [messageUpdate, setMessageUpdate] = useState(true)
 
     const ref = useRef<HTMLDivElement>(null);
     const handleClickOutside = e => {
@@ -59,17 +55,7 @@ export default function Chat(data: ChatData) {
     const scrollRef = useRef<HTMLDivElement>(null); 
     useEffect(() => 
         scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-    , [scrollRef, messageUpdate, data]);
-
-    data.socket.onmessage = e => { //TODO: this must be a dispatcher
-        const msg: Message = JSON.parse(e.data);
-
-        data.lastChats.get(msg.sender)!.unread++;
-        data.setLastChats(data.lastChats);
-
-        data.currentChat.msgs.push(msg);        
-        setMessageUpdate(!messageUpdate); //To refresh inmediately
-    };
+    , [scrollRef, currentChat]);
 
     const onSendMessage = e => {
         e.preventDefault();
@@ -79,21 +65,24 @@ export default function Chat(data: ChatData) {
             msg: message,
             sender: user?.username!,
             time: new Date().getTime(),
-            recv: data.currentChat.name,
+            recv: currentChat.name,
             read: false,
         }
-        data.currentChat.msgs.push(msg);
-        setMessageUpdate(!messageUpdate);
+
+        setCurrentChat({
+            ...currentChat,
+            msgs: currentChat.msgs.concat(msg)
+        });
         setMessage("");
 
-        data.socket.send(JSON.stringify(msg));
+        socket.send(JSON.stringify(msg));
     }
 
     return <div className="bg-slate-950 h-full flex flex-col grow overflow-x-hidden">
         <Scrollbars className="max-h-[730px] overflow-y-auto overflow-x-hidden"
         renderThumbVertical={ ({...props}) => <div {...props} className="bg-slate-500 rounded-full"/> }>
             <div ref={scrollRef} className="flex flex-col gap-2 p-2 pr-8">
-                <MessagesScroll currentChat={data.currentChat} user={user!}/>
+                <MessagesScroll currentChat={currentChat} user={user!}/>
             </div>
         </Scrollbars>
 

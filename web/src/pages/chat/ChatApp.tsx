@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../components/AuthProvider";
 import Loading from "../../components/Loading";
@@ -10,6 +10,7 @@ import CreateGroup from "./CreateGroup";
 import AddContact from "./AddContact";
 import TopBar from "./TopBar";
 import ChatInfo, { IChatInfo } from "./ChatInfo";
+import { Message } from "./ChatMessage";
 
 export default function ChatApp() {
     const { getServerUser, logout } = useAuth();
@@ -21,6 +22,31 @@ export default function ChatApp() {
     const [lastChats, setLastChats] = useState<Map<string, IChatPreview>>(new Map());
 
     const navigate = useNavigate();
+
+    const onMessage = useCallback(e => {
+        const msg: Message = JSON.parse(e.data);
+
+        const chats: [string, IChatPreview][] = Array.from(lastChats, ([k, v]) => {
+            if(k === msg.sender)
+                return [k, {
+                    ...v,
+                    unread: v.unread + 1
+                }]
+            
+            return [k, v];
+        });
+        console.log(chats);
+        setLastChats(new Map(chats));
+
+        if(!currentChat) {
+            console.warn("There isn't any current chats");
+            return;
+        }
+        setCurrentChat({
+            ...currentChat,
+            msgs: currentChat.msgs.concat(msg),
+        });
+    }, [lastChats, currentChat]);
 
     useEffect(() => {
         const isLogged = async () => {
@@ -36,8 +62,10 @@ export default function ChatApp() {
         isLogged();
 
         const wsUri = `${window.location.protocol == "https"? 'wss':'ws'}://${window.location.host}/ws`;
-        setSocket(new WebSocket(wsUri));
-    }, []);
+        let soc = new WebSocket(wsUri);
+        soc.onmessage = onMessage;
+        setSocket(soc);
+    }, [onMessage, window.location, navigate]);
 
     if(isLoading) {
         return <Loading />
@@ -63,7 +91,7 @@ export default function ChatApp() {
                     <ContactsBar setCurrentChat={setCurrentChat} lastChats={lastChats} setLastChats={setLastChats}/>
 
                     {currentChat? <>
-                        <Chat socket={socket!} currentChat={currentChat} lastChats={lastChats} setLastChats={setLastChats}/>
+                        <Chat socket={socket!} currentChat={currentChat} setCurrentChat={setCurrentChat}/>
                         <ChatInfo {...currentChat}/> 
                     </>: <></>}
                 </div>

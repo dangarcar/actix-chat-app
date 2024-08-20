@@ -90,18 +90,16 @@ export default function ContactsBar({ setCurrentChat, lastChats, setLastChats }:
         };
 
         callback();
-    }, [setLastChats, setFilteredLastChats]);
+    }, []);
 
     useEffect(() => {
         setFilteredLastChats([...lastChats.values()].filter(e => e.name.toLowerCase().includes(searchInput.toLowerCase())));
-    }, [lastChats, searchInput]);
+    }, [lastChats, searchInput, setFilteredLastChats]);
 
     const handleChange: React.ChangeEventHandler<HTMLInputElement> = e => {
         e.preventDefault();
-        const keyword = e.target.value;
-        
+        const keyword = e.target.value; 
         setSearchInput(keyword);
-        setLastChats(lastChats);
     }
 
     return <div className="bg-slate-800 border-r border-slate-600 flex flex-col w-1/4 h-[786px]">
