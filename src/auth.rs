@@ -124,16 +124,6 @@ struct UserResponse {
 async fn get_user(session: Session, _db: web::Data<Pool>) -> Result<impl Responder, error::Error> {
     let username = validate_session(&session)?;
 
-    /*let user_response = db::execute(&db, move |conn| {
-        conn.query_row(
-            "SELECT (username) FROM users WHERE id = (?1)",
-            params![id], 
-            |row| Ok( UserResponse {
-                username: row.get(0)?
-            })
-        )
-    }).await?;*/
-
     Ok(web::Json(UserResponse { username }))
 }
 

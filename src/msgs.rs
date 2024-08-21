@@ -1,5 +1,9 @@
+use std::{fs::{self, File}, io::Write};
+
 use actix_session::Session;
-use actix_web::{error, get, web, Responder};
+use actix_web::{error, get, post, web, Responder};
+use dataurl::DataUrl;
+use log::warn;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
@@ -73,4 +77,57 @@ pub async fn get_unread(session: Session, db: web::Data<Pool>) -> Result<impl Re
     }).await?;
 
     Ok(web::Json(unread))
+}
+
+#[post("/read/{username}")]
+pub async fn read(session: Session, db: web::Data<Pool>, username: web::Path<String>) -> Result<impl Responder, error::Error> {
+    let user_id = validate_session(&session)?;
+
+    db::execute(&db, move |conn| {
+        conn.execute(
+            "UPDATE msgs SET read = 1 WHERE recv = ?1 AND sender = ?2;", 
+            params![user_id, username.into_inner()]
+        )
+    }).await?;
+
+    Ok("Read")
+}
+
+#[derive(Debug, Deserialize)]
+struct ImageData {
+    data: String
+}
+
+#[post("/upload-image")]
+pub async fn upload_image(session: Session, image_data: web::Json<ImageData>) -> Result<impl Responder, error::Error> {
+    let user_id = validate_session(&session)?;
+    let data_url = DataUrl::parse(&image_data.data)
+        .map_err(|_| error::ErrorBadRequest("No image uploaded"))?;
+
+    if data_url.get_media_type() != "image/webp" {
+        warn!("Bad type: {}", data_url.get_media_type());
+        return Err(error::ErrorBadRequest("Image wasn't a WebP"));
+    }
+
+    let bytes = data_url.get_data();
+    let mut file = File::create(format!("data/img/{user_id}.webp"))
+        .map_err(|_| error::ErrorInternalServerError("Couldn't create image in the server"))?;
+    file.write_all(bytes)
+        .map_err(|_| error::ErrorInternalServerError("Couldn't save image in the server"))?;
+    
+    Ok("done")
+}
+
+#[get("/image/{username}")]
+pub async fn get_image(session: Session, username: web::Path<String>) -> Result<impl Responder, error::Error> {
+    let _ = validate_session(&session)?;
+    let username = username.into_inner();
+
+    let bytes = fs::read(format!("data/img/{username}.webp"))
+        .map_err(|_| error::ErrorInternalServerError("Couldn't read image from the server"))?;
+    let mut data_url = DataUrl::new();
+    data_url.set_data(&bytes);
+    data_url.set_media_type(Some("image/webp".to_string()));
+
+    Ok(data_url.to_string())
 }

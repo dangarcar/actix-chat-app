@@ -1,4 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { getServerUrl } from "../pages/App";
+
+const imagesCache = new Map<string, string | null>();
 
 function nameToColor(name: string) {
     if(name.length === 0)
@@ -13,13 +16,28 @@ function nameToColor(name: string) {
     return hash;
 }
 
-interface UserImageProps {
+export default function UserImage({size, name, className}: {
     size: "sm" | "md" | "xl",
     name: string,
     className?: string
-}
+}) {
+    useEffect(() => {
+        const loadImage = async () => {
+            try {
+                const response = await fetch(getServerUrl(`/image/${name}`));
+                if(response.ok)
+                    imagesCache.set(name, await response.text());
+                else
+                    imagesCache.set(name, null);
+            } catch(err) {
+                //There's nothing bad about it
+            }
+        }
 
-export default function UserImage(data: UserImageProps) {
+        if(!imagesCache.has(name))
+            loadImage();
+    }, [name]);
+
     const sizes = {
         "sm": "h-8 w-8",
         "md": "h-12 w-12",
@@ -31,14 +49,29 @@ export default function UserImage(data: UserImageProps) {
         "xl": "text-8xl leading-[110px]",
     }
 
-    const char = data.name.charAt(0).toLocaleUpperCase();
+    const char = name?.charAt(0).toLocaleUpperCase();
 
-    return <div className={`${data.className} ${sizes[data.size]}
-    rounded-full border-2 border-slate-100`} style={{backgroundColor: '#' + nameToColor(data.name).toString(16)}}>
-        <p className={"font-bold text-center cursor-default " + pSizes[data.size]}>
-            {char}
-        </p>
+    return <div className={`${className} ${sizes[size]}
+    rounded-full border-2 border-slate-100 overflow-hidden z-50`} style={{backgroundColor: '#' + nameToColor(name!).toString(16)}}>
+        {imagesCache.get(name)? 
+            <img src={imagesCache.get(name)!} className={`${sizes[size]} -z-50 overflow-hidden`}/>
+        :
+            <p className={"font-bold text-center select-none " + pSizes[size]}>{char}</p>
+        }
     </div>;
+}
+
+export async function uploadImage(dataURL: string) {
+    const headers = new Headers();
+    headers.append("Content-Type", "application/json");
+    const response = await fetch(getServerUrl("/upload-image"), {
+        method: 'POST',
+        body: JSON.stringify({ data: dataURL }),
+        headers
+    });
+
+    if(!response.ok)
+        throw Error("Couldn't upload image");
 }
 
 const COLOR_PALETTE = [

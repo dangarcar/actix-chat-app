@@ -11,7 +11,7 @@ use dotenv::dotenv;
 use groups::{add_contact, contact_info, create_group, delete_contact, get_contacts, get_user_groups};
 use local_ip_address::local_ip;
 use log::{info, LevelFilter};
-use msgs::{get_messages, get_unread};
+use msgs::{get_image, get_messages, get_unread, read, upload_image};
 use server::ChatServer;
 use sessions::WsChatSession;
 
@@ -86,6 +86,10 @@ async fn main() -> std::io::Result<()> {
             .service(logout)
             .service(delete_user)
             
+            //IMAGES
+            .service(upload_image)
+            .service(get_image)
+            
             //CONTACTS
             .service(get_contacts)
             .service(add_contact)
@@ -99,6 +103,7 @@ async fn main() -> std::io::Result<()> {
             //MESSAGES
             .service(get_messages)
             .service(get_unread)
+            .service(read)
 
             .service(actix_web_static_files::ResourceFiles::new("/", generated))
     })

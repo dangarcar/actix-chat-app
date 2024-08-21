@@ -5,17 +5,20 @@ import Scrollbars from "react-custom-scrollbars-2";
 import { getServerUrl } from "../App";
 import { IChatInfo } from "./ChatInfo";
 import { Message } from "./ChatMessage";
+import { readMessage } from "./ChatApp";
 
-const MESSAGE_PAGE_SIZE = 1000; //Would need to be changed in the future
+const MESSAGE_PAGE_SIZE = 10; //Would need to be changed in the future
 
 export interface IChatPreview {
     name: string,
     unread: number
 }
 
-function Contact({setCurrentChat, chatPreview}: {
+function Contact({setCurrentChat, chatPreview, lastChats, setLastChats}: {
     setCurrentChat: (a: IChatInfo) => void,
-    chatPreview: IChatPreview
+    chatPreview: IChatPreview,
+    lastChats: Map<string, IChatPreview>,
+    setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>
 }) {
     const onClick = async e => {
         try {
@@ -34,6 +37,8 @@ function Contact({setCurrentChat, chatPreview}: {
                 msgs: msgs.reverse(),
                 ...chatInfo
             });
+
+            readMessage(chatPreview.name, lastChats, setLastChats);
         } catch(err) {
             console.warn(err);
         }
@@ -83,7 +88,7 @@ export default function ContactsBar({ setCurrentChat, lastChats, setLastChats }:
                 }
 
                 setLastChats(chats);
-                setFilteredLastChats([...chats.values()])
+                setFilteredLastChats([...chats.values()]);
             } catch(err) {
                 console.warn(err);
             }
@@ -117,7 +122,7 @@ export default function ContactsBar({ setCurrentChat, lastChats, setLastChats }:
         renderThumbVertical={ ({...props}) => <div {...props} className="bg-slate-500 rounded-full"/> }>
             <div className="flex flex-col flex-nowrap">
                 {filteredLastChats.map(chatPreview => 
-                    Contact( {setCurrentChat, chatPreview} )
+                    Contact( {setCurrentChat, chatPreview, lastChats, setLastChats} )
                 )}
             </div>
         </Scrollbars>
