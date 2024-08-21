@@ -11,7 +11,7 @@ use dotenv::dotenv;
 use groups::{add_contact, contact_info, create_group, delete_contact, get_contacts, get_user_groups};
 use local_ip_address::local_ip;
 use log::{info, LevelFilter};
-use msgs::{get_image, get_messages, get_unread, read, upload_image};
+use msgs::{get_image, get_messages, get_unread, read, update_bio, upload_image};
 use server::ChatServer;
 use sessions::WsChatSession;
 
@@ -85,6 +85,7 @@ async fn main() -> std::io::Result<()> {
             .service(login)
             .service(logout)
             .service(delete_user)
+            .service(update_bio)
             
             //IMAGES
             .service(upload_image)

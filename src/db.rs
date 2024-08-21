@@ -24,6 +24,7 @@ pub fn init_database() -> Result<Pool, actix_web::error::Error> {
 	            username	TEXT NOT NULL UNIQUE,
 	            password	TEXT NOT NULL,
                 last_time   INTEGER,
+                bio         TEXT,
 	            PRIMARY KEY(username)
             );
             

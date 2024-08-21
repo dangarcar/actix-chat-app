@@ -145,14 +145,14 @@ pub async fn contact_info(session: Session, db: web::Data<Pool>, username: web::
         let name = username.into_inner();
 
         conn.query_row(
-            "SELECT users.username, users.last_time FROM contacts 
+            "SELECT users.username, users.last_time, users.bio FROM contacts 
             INNER JOIN users ON users.username = user2
             WHERE user1 = ?1 AND users.username = ?2;", 
             params![user_id, name.clone()],
             |row| Ok(Contact {
                 name: row.get(0)?,
                 last_time: row.get(1)?,
-                bio: format!("Hello, I'm {}", name.clone()), //TODO: A custom bio
+                bio: row.get(2)?,
             })
         )
     }).await?;

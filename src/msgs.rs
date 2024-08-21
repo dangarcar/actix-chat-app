@@ -131,3 +131,23 @@ pub async fn get_image(session: Session, username: web::Path<String>) -> Result<
 
     Ok(data_url.to_string())
 }
+
+#[derive(Debug, Deserialize)]
+struct BioBody {
+    bio: String
+}
+
+#[post("/bio")]
+pub async fn update_bio(session: Session, db: web::Data<Pool>, bio: web::Json<BioBody>) -> Result<impl Responder, error::Error> {
+    let user_id = validate_session(&session)?;
+    let bio = bio.into_inner().bio;
+
+    db::execute(&db, move |conn| {
+        conn.execute(
+            "UPDATE users SET bio = ?1 WHERE username = ?2", 
+            params![bio, user_id]
+        )
+    }).await?;
+
+    Ok("Bio updated successfully")
+}

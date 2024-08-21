@@ -3,16 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../components/AuthProvider";
 import Loading from "../../components/Loading";
 import { LogOut, MessageCirclePlus, UserRoundPlus } from "lucide-react";
-import userImage from "../../assets/user.png";
 import ContactsBar, { IChatPreview } from "./ContactsBar";
 import Chat from "./Chat";
-import CreateGroup from "./CreateGroup";
 import AddContact from "./AddContact";
 import TopBar from "./TopBar";
 import ChatInfo, { IChatInfo } from "./ChatInfo";
 import { Message } from "./ChatMessage";
 import { getServerUrl } from "../App";
 import UserImage, { uploadImage } from "../../components/UserImage";
+import UpdateBio from "./UpdateBio";
 
 export async function readMessage(user: string, lastChats: Map<string, IChatPreview>, setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>) {
     const response = await fetch(getServerUrl(`/read/${user}`), {method: 'POST'});
@@ -35,7 +34,7 @@ export default function ChatApp() {
     const { user, getServerUser, logout } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [socket, setSocket] = useState<WebSocket>();
-    const [groupPopupOpen, setGroupPopupOpen] = useState(false);
+    const [bioPopupOpen, setBioPopupOpen] = useState(false);
     const [contactsPopupOpen, setContactsPopupOpen] = useState(false);
     const [currentChat, setCurrentChat] = useState<IChatInfo>();
     const [lastChats, setLastChats] = useState<Map<string, IChatPreview>>(new Map());
@@ -125,14 +124,14 @@ export default function ChatApp() {
                 <div className="flex h-16">
                     <div className="w-1/4 bg-lime-800 inline-block align-middle border-r border-slate-400">
                         <label htmlFor="image-zone" className="flex float-left m-2 cursor-pointer">
-                            <UserImage name={user?.username} size={"md"} />
+                            <UserImage name={user?.username!} size={"md"} />
                             <input type="file" id="image-zone" name="image-zone" onChange={onUploadImage} accept="image/*" className="" hidden/>
                         </label>
                         <LogOut size={36} className="float-right m-2 mt-3 hover:scale-110 cursor-pointer" onClick={e => logout()}/>
                         
-                        <MessageCirclePlus size={36} className="float-right m-2 mt-3 text-slate-400" onClick={e => {}/*setGroupPopupOpen(true)}*/}/>                        
-                        <CreateGroup open={groupPopupOpen} setOpen={setGroupPopupOpen}/>
-                        
+                        <MessageCirclePlus size={36} className="float-right m-2 mt-3 hover:scale-110 cursor-pointer" onClick={e => setBioPopupOpen(true)}/>
+                        <UpdateBio open={bioPopupOpen} setOpen={setBioPopupOpen} />
+
                         <UserRoundPlus size={36} className="float-right m-2 mt-3 hover:scale-110 cursor-pointer" onClick={e => setContactsPopupOpen(true)} />
                         <AddContact open={contactsPopupOpen} setOpen={setContactsPopupOpen} />
                     </div>

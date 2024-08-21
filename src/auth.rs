@@ -38,8 +38,13 @@ pub async fn signup(input: web::Json<SignUpInput>, session: Session, db: web::Da
     
     let user_id = db::execute(&db, move |conn| {
         conn.query_row(
-            "INSERT INTO users (username, password, last_time) VALUES (?1, ?2, ?3) RETURNING (username)",
-            params![input.username, hashed_password, SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64],
+            "INSERT INTO users (username, password, last_time, bio) VALUES (?1, ?2, ?3, ?4) RETURNING (username)",
+            params![
+                input.username, 
+                hashed_password, 
+                SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64, 
+                format!("Good morning, I'm {}", input.username)
+            ],
             |row| row.get(0)
         ) as Result<String, rusqlite::Error>
     })
