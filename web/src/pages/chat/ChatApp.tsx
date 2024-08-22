@@ -73,6 +73,12 @@ export default function ChatApp() {
         const isLogged = async () => {
             try {
                 await getServerUser();
+
+                const wsUri = `${window.location.protocol == "https"? 'wss':'ws'}://${window.location.host}/ws`;
+                let soc = new WebSocket(wsUri);
+                soc.onmessage = onMessage;
+                setSocket(soc);
+
                 setIsLoading(false);
             } catch(error) {
                 console.warn(error);
@@ -81,11 +87,6 @@ export default function ChatApp() {
         }
 
         isLogged();
-
-        const wsUri = `${window.location.protocol == "https"? 'wss':'ws'}://${window.location.host}/ws`;
-        let soc = new WebSocket(wsUri);
-        soc.onmessage = onMessage;
-        setSocket(soc);
     }, [onMessage, window.location, navigate]);
 
     const onUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {

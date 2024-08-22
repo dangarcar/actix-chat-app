@@ -29,6 +29,5 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 
 argon2 = { version = "0.5.3", features = ["password-hash"] }
 
-
 [build-dependencies]
 static-files = "0.2.1"

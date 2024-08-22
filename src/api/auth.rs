@@ -1,35 +1,24 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use actix_session::Session;
-use actix_web::{ delete, error, get, post, web, Responder };
-use argon2::{ password_hash::{ rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString }, Argon2 };
+use actix_web::{delete, error, post, web, Responder};
+use argon2::{password_hash::{rand_core::OsRng, SaltString}, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use log::info;
 use rusqlite::params;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::db::{self, Pool};
 
-const SESSION_KEY: &'static str = "user_id";
-
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
-pub struct User {
-    username: String,
-    password: String,
-}
+const USER_ID_KEY: &'static str = "user_id";
 
 #[derive(Deserialize, Debug, Default, Clone)]
-struct SignUpInput {
+struct LoginData {
     username: String,
     password: String
 }
 
-#[derive(Serialize, Debug, Default, Clone)]
-struct SignUpResponse {
-    access_token: String,
-}
-
 #[post("/create")]
-pub async fn signup(input: web::Json<SignUpInput>, session: Session, db: web::Data<Pool>) -> Result<impl Responder, error::Error> {
+pub async fn signup(input: web::Json<LoginData>, session: Session, db: web::Data<Pool>) -> Result<impl Responder, error::Error> {
     let salt = SaltString::generate(&mut OsRng);
     let hashed_password = Argon2::default()
         .hash_password(input.password.as_bytes(), &salt)
@@ -51,15 +40,9 @@ pub async fn signup(input: web::Json<SignUpInput>, session: Session, db: web::Da
     .await
     .map_err(|_| error::ErrorUnauthorized("Couldn't create user"))?;
 
-    session.insert(SESSION_KEY, user_id).unwrap();
+    session.insert(USER_ID_KEY, user_id).unwrap();
 
     Ok("Welcome!")
-}
-
-#[derive(Deserialize, Debug, Default, Clone)]
-struct LoginData {
-    username: String,
-    password: String
 }
 
 #[post("/login")]
@@ -70,9 +53,9 @@ pub async fn login(input: web::Json<LoginData>, session: Session, db: web::Data<
 
     let user = db::execute(&db, move |conn| {
         conn.query_row(
-            "SELECT username, password FROM users WHERE username = (?1)",
+            "SELECT username, password FROM users WHERE username = ?1",
             params![username],
-            |row| Ok(User {
+            |row| Ok(LoginData {
                 username: row.get(0)?,
                 password: row.get(1)?
             })
@@ -88,7 +71,7 @@ pub async fn login(input: web::Json<LoginData>, session: Session, db: web::Data<
     
     match Argon2::default().verify_password(input.password.as_bytes(), &hashed_password) {
         Ok(_) => {
-            session.insert(SESSION_KEY, user.username).unwrap();
+            session.insert(USER_ID_KEY, user.username).unwrap();
             Ok("Welcome!")
         }
         Err(_) => {
@@ -99,8 +82,7 @@ pub async fn login(input: web::Json<LoginData>, session: Session, db: web::Data<
 
 #[delete("/logout")]
 pub async fn logout(session: Session) -> Result<impl Responder, error::Error> {
-    session.remove(SESSION_KEY);
-
+    session.purge();
     Ok("You are out!")
 }
 
@@ -115,31 +97,18 @@ pub async fn delete_user(session: Session, db: web::Data<Pool>) -> Result<impl R
         )
     }).await?;
     
-    session.remove(SESSION_KEY);
-
+    session.purge();
     Ok("You are out!")
 }
 
-#[derive(Serialize, Debug, Default, Clone)]
-struct UserResponse {
-    username: String
-}
-
-#[get("/user")]
-async fn get_user(session: Session, _db: web::Data<Pool>) -> Result<impl Responder, error::Error> {
-    let username = validate_session(&session)?;
-
-    Ok(web::Json(UserResponse { username }))
-}
-
 pub fn validate_session(session: &Session) -> Result<String, error::Error> {
-    let id: Option<String> = session.get(SESSION_KEY).unwrap_or(None);
+    let user_id: Option<String> = session.get(USER_ID_KEY).unwrap_or(None);
 
-    match id {
-        Some(id) => {
+    match user_id {
+        Some(user_id) => {
             // keep the user's session alive
             session.renew();
-            Ok(id)
+            Ok(user_id)
         }
         None => Err(actix_web::error::ErrorUnauthorized("Unathorized")),
     }

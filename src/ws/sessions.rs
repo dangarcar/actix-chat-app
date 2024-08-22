@@ -4,7 +4,7 @@ use actix::{Actor, ActorContext, Addr, AsyncContext, Handler, Running, StreamHan
 use actix_web_actors::ws;
 use log::{debug, info};
 
-use crate::server::{ChatServer, Connect, Disconnect, WsMessage};
+use super::server::{ChatServer, Connect, Disconnect, WsMessage};
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);

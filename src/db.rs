@@ -1,7 +1,7 @@
 use std::env;
 
 use actix_web::web;
-use log::{debug, info};
+use log::debug;
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::Transaction;
 
@@ -27,27 +27,6 @@ pub fn init_database() -> Result<Pool, actix_web::error::Error> {
                 bio         TEXT,
 	            PRIMARY KEY(username)
             );
-            
-            CREATE TABLE IF NOT EXISTS groups (
-	            id	INTEGER,
-	            name	TEXT,
-                last_time   INTEGER,
-	            PRIMARY KEY(id AUTOINCREMENT)
-            );
-            
-            CREATE TABLE IF NOT EXISTS users_groups (
-            	user_id	TEXT NOT NULL,
-            	group_id	INTEGER NOT NULL,
-            	role	INTEGER NOT NULL,
-            	FOREIGN KEY(group_id) 
-            		REFERENCES groups (id)
-            	FOREIGN KEY(user_id) 
-            		REFERENCES users (username)
-            );
-            CREATE INDEX IF NOT EXISTS users_groups_user_id_index 
-            ON users_groups (user_id);
-            CREATE INDEX IF NOT EXISTS users_groups_group_id_index 
-            ON users_groups (group_id);
             
             CREATE TABLE IF NOT EXISTS contacts (
                 user1 TEXT NOT NULL,
@@ -105,7 +84,7 @@ where
     })
     .await?
     .map_err(|err| {
-        info!("{err}");
+        debug!("{err}");
         actix_web::error::ErrorInternalServerError("Database error") 
     })
 }

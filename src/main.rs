@@ -1,49 +1,22 @@
-use std::{env, time::Instant};
+use std::env;
 
-use actix::{Actor, Addr};
-use actix_session::{storage::CookieSessionStore, Session, SessionMiddleware};
-use actix_web::{cookie::Key, get, middleware::Logger, web, App, HttpRequest, HttpResponse, HttpServer};
+use actix::Actor;
+use actix_session::{storage::CookieSessionStore, SessionMiddleware};
+use actix_web::{cookie::Key, middleware::Logger, web, App, HttpServer};
 
-use actix_web_actors::ws;
-use auth::{delete_user, get_user, login, logout, signup, validate_session};
+use api::{auth::*, contacts::*, msgs::*, user::*};
 use db::init_database;
 use dotenv::dotenv;
-use groups::{add_contact, contact_info, create_group, delete_contact, get_contacts, get_user_groups};
 use local_ip_address::local_ip;
 use log::{info, LevelFilter};
-use msgs::{get_image, get_messages, get_unread, read, update_bio, upload_image};
-use server::ChatServer;
-use sessions::WsChatSession;
+use ws::{chat_route, ChatServer};
 
 // This may be very ugly but it's needed for the file bundling
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
-mod auth;
 mod db;
-mod groups;
-mod sessions;
-mod server;
-mod msgs;
-
-#[get("/ws")]
-async fn chat_route(
-    req: HttpRequest,
-    stream: web::Payload,
-    srv: web::Data<Addr<ChatServer>>,
-    session: Session,
-) -> Result<HttpResponse, actix_web::Error> {
-    let user_id = validate_session(&session)?;
-
-    ws::start(
-        WsChatSession { 
-            name: user_id, 
-            hb: Instant::now(), 
-            addr: srv.get_ref().clone() 
-        },
-        &req,
-        stream,
-    )
-}
+mod ws;
+mod api;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -79,27 +52,23 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .service(chat_route)
             
-            //USER
-            .service(get_user)
+            //AUTH
             .service(signup)
             .service(login)
             .service(logout)
             .service(delete_user)
-            .service(update_bio)
             
-            //IMAGES
+            //USER
+            .service(get_user)
             .service(upload_image)
             .service(get_image)
+            .service(update_bio)
             
             //CONTACTS
             .service(get_contacts)
             .service(add_contact)
             .service(delete_contact)
             .service(contact_info)
-
-            //GROUPS
-            .service(get_user_groups)
-            .service(create_group)
             
             //MESSAGES
             .service(get_messages)
