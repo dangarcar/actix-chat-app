@@ -1,7 +1,7 @@
 import React from "react"
 import UserImage from "../../components/UserImage"
 import { Trash2 } from "lucide-react"
-import { getServerUrl } from "../App"
+import { getServerUrl } from "../../App"
 import { Message } from "./ChatMessage"
 
 export interface IChatInfo {

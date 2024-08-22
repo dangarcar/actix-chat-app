@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import Popup from "reactjs-popup";
-import { getServerUrl } from "../App";
+import { getServerUrl } from "../../App";
 
 export default function AddContact({open, setOpen}) {
     const { register, handleSubmit, setValue } = useForm();

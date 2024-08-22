@@ -1,16 +1,22 @@
-use std::env;
+use std::{fs, path::Path};
 
 use actix_web::web;
-use log::debug;
+use log::{debug, info};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::Transaction;
 
 pub type Pool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
 
 pub fn init_database() -> Result<Pool, actix_web::error::Error> {
-    let database_url = env::var("DATABASE_LOCATION")
-        .map_err(|_| actix_web::error::ErrorInternalServerError("Couldn't find database location"))?;
-    let manager = SqliteConnectionManager::file(database_url);
+    if !Path::new("data").exists() {
+        fs::create_dir("data/").unwrap();
+        fs::create_dir("data/img/").unwrap();
+        info!("Database created at data/data.db");
+    } else {
+        info!("Database found at data/data.db");
+    }
+
+    let manager = SqliteConnectionManager::file("data/data.db");
     let pool = Pool::new(manager)
         .map_err(|_| actix_web::error::ErrorInternalServerError("Couldn't create new connection pool"))?;
 

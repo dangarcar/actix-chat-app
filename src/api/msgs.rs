@@ -14,7 +14,7 @@ struct QueryMessage {
 }
 
 #[get("/msgs/{username}")]
-async fn get_messages(session: Session, db: web::Data<Pool>, username: web::Path<String>, query: web::Query<QueryMessage>) -> Result<impl Responder, error::Error> {
+pub async fn get_messages(session: Session, db: web::Data<Pool>, username: web::Path<String>, query: web::Query<QueryMessage>) -> Result<impl Responder, error::Error> {
     let user_id = validate_session(&session)?;
     let username = username.into_inner();
     let query = query.into_inner();
@@ -51,7 +51,7 @@ struct UnreadResponse {
 }
 
 #[get("/unread")]
-async fn get_unread(session: Session, db: web::Data<Pool>) -> Result<impl Responder, error::Error> {
+pub async fn get_unread(session: Session, db: web::Data<Pool>) -> Result<impl Responder, error::Error> {
     let user_id = validate_session(&session)?;
 
     let unread: Vec<UnreadResponse> = db::execute(&db, move |conn| {
@@ -76,7 +76,7 @@ async fn get_unread(session: Session, db: web::Data<Pool>) -> Result<impl Respon
 }
 
 #[post("/read/{username}")]
-async fn read(session: Session, db: web::Data<Pool>, username: web::Path<String>) -> Result<impl Responder, error::Error> {
+pub async fn read(session: Session, db: web::Data<Pool>, username: web::Path<String>) -> Result<impl Responder, error::Error> {
     let user_id = validate_session(&session)?;
 
     db::execute(&db, move |conn| {

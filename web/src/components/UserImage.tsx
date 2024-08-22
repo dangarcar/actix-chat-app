@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getServerUrl } from "../pages/App";
+import { getServerUrl } from "../App";
 
 const imagesCache = new Map<string, string | null>();
 

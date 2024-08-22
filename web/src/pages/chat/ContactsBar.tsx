@@ -2,16 +2,18 @@ import { Search } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import UserImage from "../../components/UserImage";
 import Scrollbars from "react-custom-scrollbars-2";
-import { getServerUrl } from "../App";
+import { getServerUrl } from "../../App";
 import { IChatInfo } from "./ChatInfo";
-import { Message } from "./ChatMessage";
-import { readMessage } from "./ChatApp";
+import { Message, unixTimeToHour } from "./ChatMessage";
+import { readMessage } from "../ChatApp";
+import { useAuth } from "../../components/AuthProvider";
 
 const MESSAGE_PAGE_SIZE = 10; //Would need to be changed in the future
 
 export interface IChatPreview {
     name: string,
-    unread: number
+    unread: number,
+    msg?: Message
 }
 
 function Contact({setCurrentChat, chatPreview, lastChats, setLastChats}: {
@@ -20,6 +22,8 @@ function Contact({setCurrentChat, chatPreview, lastChats, setLastChats}: {
     lastChats: Map<string, IChatPreview>,
     setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>
 }) {
+    const {user} = useAuth();
+
     const onClick = async e => {
         try {
             const contactResponse = await fetch(getServerUrl(`/contact/${chatPreview.name}`));
@@ -44,12 +48,19 @@ function Contact({setCurrentChat, chatPreview, lastChats, setLastChats}: {
         }
     }
 
-    //TODO:
     return <div className="p-2 hover:bg-slate-700 cursor-pointer shrink-0 flex" key={chatPreview.name} onClick={onClick}>
         <div className="grow">
             <UserImage size={"md"} name={chatPreview.name} className="float-left mr-2"/>
             <p className="font-medium text-slate-100" >{chatPreview.name}</p>
-            <p className="text-sm font-light text-slate-300" >some random text</p>
+            {chatPreview.msg?
+                <p className="text-sm font-light text-slate-300" >
+                    <b>{unixTimeToHour(chatPreview.msg.time)}: </b>
+                    {chatPreview.msg.sender === user?.username? " You: ":" "}
+                    {chatPreview.msg.msg.length > 40? chatPreview.msg.msg.substring(0, 37) + "..." : chatPreview.msg.msg}
+                </p>
+                :
+                <p className="text-sm font-light text-slate-400" >No message</p>
+            }            
         </div>
         {chatPreview.unread != 0 && <div className="rounded-full m-2 bg-emerald-600 border-2 w-8">
             <p className="text-slate-100 font-bold text-center text-lg">{chatPreview.unread}</p>
@@ -63,7 +74,7 @@ export default function ContactsBar({ setCurrentChat, lastChats, setLastChats }:
     setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>
 }) {
     const [searchInput, setSearchInput] = useState("");
-    const [filteredLastChats, setFilteredLastChats] = useState<IChatPreview[]>([...lastChats.values()]);
+    const [filteredLastChats, setFilteredLastChats] = useState<IChatPreview[]>([]);
 
     useEffect(() => {
         const callback = async () => {
@@ -79,16 +90,18 @@ export default function ContactsBar({ setCurrentChat, lastChats, setLastChats }:
                 let unreads = await response.json();
                 let chats: Map<string, IChatPreview> = new Map();
 
-                for(let i of await contactResponse.json()) {
-                    const unread = unreads.find(e => e.contact == i)?.unread;
-                    chats.set(i, {
-                        name: i,
+                console.log(unreads);
+
+                for(let cont of await contactResponse.json()) {
+                    const unread = unreads.find(e => e.contact == cont.name)?.unread;
+                    chats.set(cont.name, {
+                        name: cont.name,
                         unread: unread? unread : 0,
+                        msg: cont.lastMsg
                     });
                 }
 
                 setLastChats(chats);
-                setFilteredLastChats([...chats.values()]);
             } catch(err) {
                 console.warn(err);
             }
@@ -98,7 +111,15 @@ export default function ContactsBar({ setCurrentChat, lastChats, setLastChats }:
     }, []);
 
     useEffect(() => {
-        setFilteredLastChats([...lastChats.values()].filter(e => e.name.toLowerCase().includes(searchInput.toLowerCase())));
+        setFilteredLastChats([...lastChats.values()]
+            .filter(e => e.name.toLowerCase().includes(searchInput.toLowerCase()))
+            .sort((a, b) => {
+                if(a.msg && b.msg)
+                    return b.msg.time - a.msg.time;
+                else
+                    return (b.msg == undefined? 0: 1) - (a.msg == undefined? 0 : 1)
+            })
+        );
     }, [lastChats, searchInput, setFilteredLastChats]);
 
     const handleChange: React.ChangeEventHandler<HTMLInputElement> = e => {

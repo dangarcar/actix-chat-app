@@ -1,17 +1,17 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../components/AuthProvider";
-import Loading from "../../components/Loading";
+import { useAuth } from "../components/AuthProvider";
+import Loading from "./Loading";
 import { LogOut, MessageCirclePlus, UserRoundPlus } from "lucide-react";
-import ContactsBar, { IChatPreview } from "./ContactsBar";
-import Chat from "./Chat";
-import AddContact from "./AddContact";
-import TopBar from "./TopBar";
-import ChatInfo, { IChatInfo } from "./ChatInfo";
-import { Message } from "./ChatMessage";
+import ContactsBar, { IChatPreview } from "./chat/ContactsBar";
+import Chat from "./chat/Chat";
+import AddContact from "./chat/AddContact";
+import TopBar from "./chat/TopBar";
+import ChatInfo, { IChatInfo } from "./chat/ChatInfo";
+import { Message } from "./chat/ChatMessage";
 import { getServerUrl } from "../App";
-import UserImage, { uploadImage } from "../../components/UserImage";
-import UpdateBio from "./UpdateBio";
+import UserImage, { uploadImage } from "../components/UserImage";
+import UpdateBio from "./chat/UpdateBio";
 
 export async function readMessage(user: string, lastChats: Map<string, IChatPreview>, setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>) {
     const response = await fetch(getServerUrl(`/read/${user}`), {method: 'POST'});
@@ -47,22 +47,25 @@ export default function ChatApp() {
         const chats: [string, IChatPreview][] = Array.from(lastChats, ([k, v]) => {
             if(k === msg.sender)
                 return [k, {
-                    ...v,
-                    unread: v.unread + 1
+                    name: v.name,
+                    unread: v.unread + 1,
+                    msg
                 }];
             
             return [k, v];
         });
-        setLastChats(new Map(chats));
 
         if(!currentChat) {
             console.warn("There isn't any current chats");
             return;
-        } 
-        if(currentChat.name === msg.sender) {
-            readMessage(msg.sender, lastChats, setLastChats);
         }
-        
+
+        if(currentChat.name === msg.sender) {
+            readMessage(msg.sender, new Map(chats), setLastChats);    
+        } else {
+            setLastChats(new Map(chats));
+        }
+
         setCurrentChat({
             ...currentChat,
             msgs: currentChat.msgs.concat(msg),
@@ -144,7 +147,7 @@ export default function ChatApp() {
                     <ContactsBar setCurrentChat={setCurrentChat} lastChats={lastChats} setLastChats={setLastChats}/>
 
                     {currentChat? <>
-                        <Chat socket={socket!} currentChat={currentChat} setCurrentChat={setCurrentChat}/>
+                        <Chat socket={socket!} currentChat={currentChat} setCurrentChat={setCurrentChat} lastChats={lastChats} setLastChats={setLastChats}/>
                         <ChatInfo {...currentChat}/> 
                     </>: <></>}
                 </div>

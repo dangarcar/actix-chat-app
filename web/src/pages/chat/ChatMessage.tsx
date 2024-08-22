@@ -15,7 +15,7 @@ interface ChatMessageProps {
     key: string,
 }
 
-function unixTimeToHour(time: number) {
+export function unixTimeToHour(time: number) {
     return new Date(time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 

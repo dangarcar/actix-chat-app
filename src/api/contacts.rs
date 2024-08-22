@@ -3,11 +3,18 @@ use actix_web::{error, get, post, web, Responder};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
-use crate::{api::auth::validate_session, db::{self, Pool}};
+use crate::{api::auth::validate_session, db::{self, Pool}, ws::WsMessage};
 
 #[derive(Debug, Deserialize)]
 struct QueryContacts {
     search: Option<String>
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ContactPreview {
+    name: String,
+    last_msg: Option<WsMessage>
 }
 
 #[get("/contacts")]
@@ -15,7 +22,7 @@ pub async fn get_contacts(session: Session, db: web::Data<Pool>, query: web::Que
     let user_id = validate_session(&session)?;
     let query = query.into_inner();
 
-    let contacts: Vec<String> = db::execute(&db, move |conn| {
+    let contacts: Vec<ContactPreview> = db::execute(&db, move |conn| {
         let mut stmt = conn.prepare(
             "SELECT users.username FROM contacts 
             INNER JOIN users ON users.username = user2
@@ -24,10 +31,33 @@ pub async fn get_contacts(session: Session, db: web::Data<Pool>, query: web::Que
 
         let response = stmt.query_map(
             params![user_id, format!("%{}%", query.search.unwrap_or(String::new()))], 
-            |row| row.get(0)
+            |row| row.get(0) as Result<String, _>
         )?;
 
-        response.into_iter().collect()
+        let mut msg_stmt = conn.prepare(
+            "SELECT msg, sender, recv, timestamp, read FROM msgs 
+            WHERE (sender = ?1 AND recv = ?2) OR (sender = ?2 AND recv = ?1)
+            ORDER BY timestamp DESC LIMIT 1;"
+        )?;
+
+        let conts = response.into_iter().map(|cont| {
+            let cont = cont.unwrap();
+            let msg = msg_stmt.query_row( params![user_id, cont], 
+            |row| Ok(WsMessage {
+                msg: row.get(0)?,
+                sender: row.get(1)?,
+                recv: row.get(2)?,
+                time: row.get(3)?,
+                read: row.get(4)?,
+            }));
+
+            ContactPreview {
+                name: cont,
+                last_msg: msg.ok()
+            }
+        });
+
+        Ok(conts.collect())
     }).await?;
 
     Ok(web::Json(contacts))

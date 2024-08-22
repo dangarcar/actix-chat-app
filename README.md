@@ -16,7 +16,6 @@ Then, when in your OPi, you'll need to go to /home in your user and you must cre
 SESSION_KEY={SOMETHING_LONG}
 PASSWORD_KEY={SOMETHING_LONG}
 PORT={WHATEVER}
-DATABASE_LOCATION={The location of your .db file, example data/data.db}
 ```
 
 Then, run the command ``` ./actix-server ``` and it'll print the IP to be used in

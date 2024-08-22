@@ -1,11 +1,10 @@
 import { SendHorizontal, Smile } from "lucide-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import EmojiPicker, { Emoji, EmojiStyle, Theme } from "emoji-picker-react";
-import { useAuth } from "../../components/AuthProvider";
+import React, { useEffect, useRef, useState } from "react";
+import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
+import { useAuth, User } from "../../components/AuthProvider";
 import Scrollbars from "react-custom-scrollbars-2";
 import ChatMessage, { Message } from "./ChatMessage";
 import { IChatInfo } from "./ChatInfo";
-import User from "../../components/User";
 import { IChatPreview } from "./ContactsBar";
 
 function MessagesScroll({currentChat, user}: {currentChat: IChatInfo, user: User}) {
@@ -28,10 +27,12 @@ function MessagesScroll({currentChat, user}: {currentChat: IChatInfo, user: User
     }</>
 }
 
-export default function Chat({socket, currentChat, setCurrentChat}: {
+export default function Chat({socket, currentChat, setCurrentChat, lastChats, setLastChats}: {
     socket: WebSocket,
     currentChat: IChatInfo,
     setCurrentChat: React.Dispatch<React.SetStateAction<IChatInfo | undefined>>,
+    lastChats: Map<string, IChatPreview>, 
+    setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>
 }) {
     const { user } = useAuth();
     const [emojiOpen, setEmojiOpen] = useState(false);
@@ -74,6 +75,16 @@ export default function Chat({socket, currentChat, setCurrentChat}: {
             msgs: currentChat.msgs.concat(msg)
         });
         setMessage("");
+
+        setLastChats(new Map(Array.from(lastChats, ([k, v]) => {
+            if(k === currentChat.name)
+                return [k, {
+                    ...v,
+                    msg
+                }];
+    
+            return [k, v];
+        })));
 
         socket.send(JSON.stringify(msg));
     }

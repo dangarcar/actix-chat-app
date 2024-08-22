@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import Popup from "reactjs-popup";
-import { getServerUrl } from "../App";
+import { getServerUrl } from "../../App";
 
 export default function UpdateBio({open, setOpen}) {
-    const { register, handleSubmit, setValue } = useForm();
+    const { handleSubmit, setValue } = useForm();
     const [bio, setBio] = useState('');
     const [error, setError] = useState<string>();
 

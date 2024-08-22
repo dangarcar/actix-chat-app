@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { Link } from "react-router-dom";
-import { useAuth } from "../../components/AuthProvider";
-import userImage from './../../assets/user.png';
+import { useAuth } from "../components/AuthProvider";
+import userImage from './../assets/user.png';
 import { useForm } from "react-hook-form";
 
 interface SignUpData {

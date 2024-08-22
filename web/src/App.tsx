@@ -1,9 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import Login from './login/Login';
-import ChatApp from './chat/ChatApp';
-import Signup from './signup/Signup';
-import AuthProvider from '../components/AuthProvider';
+import Login from './pages/Login';
+import ChatApp from './pages/ChatApp';
+import Signup from './pages/Signup';
+import AuthProvider from './components/AuthProvider';
 
 export function getServerUrl(route: string) {
     const serverUrl = window.location.href.slice(0, window.location.href.lastIndexOf('/'));

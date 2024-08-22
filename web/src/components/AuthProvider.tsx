@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useState } from "react";
-import User from "./User";
 import { useNavigate } from "react-router-dom";
-import { getServerUrl } from "../pages/App";
+import { getServerUrl } from "../App";
+
+export interface User {
+    username: string,
+    password: string
+}
 
 interface AuthUser {
     user: User | null,
@@ -85,8 +89,6 @@ export default function AuthProvider(props: {children: JSX.Element}) {
             throw Error(await response.text());
 
         const json = await response.json();
-
-        console.log(json);
         setUser({
             username: json.username,
             password: ""
