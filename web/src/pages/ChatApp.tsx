@@ -92,30 +92,38 @@ export default function ChatApp() {
         isLogged();
     }, [onMessage, window.location, navigate]);
 
-    const onUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if(!e.target.files || !e.target.files[0]) {
-            console.warn("There are no files :(");
-            return;
-        }
-
-        const file = e.target.files[0];
-        const image = new Image();
-        image.src = URL.createObjectURL(file);
-        image.onload = async () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext("2d");
-
-            canvas.width = 256;
-            canvas.height = 256;
-            ctx?.drawImage(image, 0, 0, 256, 256);
-
-            try {
-                await uploadImage(canvas.toDataURL('image/webp'));
-                location.reload();
-            } catch(err) {
-                console.warn(err);
+    const onUploadImage = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        
+        input.onchange = (e: any) => {
+            if(!e.target?.files || !e.target?.files[0]) {
+                console.warn("There are no files :(");
+                return;
             }
-        };
+    
+            const file = e.target.files[0];
+            const image = new Image();
+            image.src = URL.createObjectURL(file);
+            image.onload = async () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext("2d");
+    
+                canvas.width = 256;
+                canvas.height = 256;
+                ctx?.drawImage(image, 0, 0, 256, 256);
+    
+                try {
+                    await uploadImage(canvas.toDataURL('image/webp'));
+                    location.reload();
+                } catch(err) {
+                    console.warn(err);
+                }
+            };
+        }
+        
+        input.click();
     }
 
     if(isLoading) {
@@ -127,9 +135,8 @@ export default function ChatApp() {
             <div className="w-[1600px] h-[850px] shadow-glow-1 rounded flex flex-col">
                 <div className="flex h-16">
                     <div className="w-1/4 bg-lime-800 inline-block align-middle border-r border-slate-400">
-                        <label htmlFor="image-zone" className="flex float-left m-2 cursor-pointer">
+                        <label htmlFor="image-zone" className="flex float-left m-2 cursor-pointer" onClick={onUploadImage}>
                             <UserImage name={user?.username!} size={"md"} />
-                            <input type="file" id="image-zone" name="image-zone" onChange={onUploadImage} accept="image/*" className="" hidden/>
                         </label>
                         <LogOut size={36} className="float-right m-2 mt-3 hover:scale-110 cursor-pointer" onClick={e => logout()}/>
                         

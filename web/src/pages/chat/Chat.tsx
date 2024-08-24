@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { useAuth, User } from "../../components/AuthProvider";
 import Scrollbars from "react-custom-scrollbars-2";
-import ChatMessage, { Message } from "./ChatMessage";
+import ChatMessage, { loadMessages, Message } from "./ChatMessage";
 import { IChatInfo } from "./ChatInfo";
 import { IChatPreview } from "./ContactsBar";
 
@@ -37,6 +37,8 @@ export default function Chat({socket, currentChat, setCurrentChat, lastChats, se
     const { user } = useAuth();
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [message, setMessage] = useState("");
+    const [page, setPage] = useState(0);
+    const [scrollHeight, setScrollHeight] = useState(0);
 
     const ref = useRef<HTMLDivElement>(null);
     const handleClickOutside = e => {
@@ -51,12 +53,27 @@ export default function Chat({socket, currentChat, setCurrentChat, lastChats, se
         return () => {
             document.removeEventListener('click', handleClickOutside, true);
         }
-    });
+    }, []);
 
-    const scrollRef = useRef<HTMLDivElement>(null); 
-    useEffect(() => 
-        scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-    , [scrollRef, currentChat]);
+    const scrollRef = useRef<Scrollbars>(null); 
+    useEffect(() => scrollRef.current?.scrollToBottom(), [message]);
+    const loadMoreMessages = async () => {
+        if(scrollRef.current?.getScrollTop() === 0) {
+            const newMsgs = await loadMessages(currentChat.name, page + 1);
+            setPage(page + 1);
+            setScrollHeight(scrollRef.current.getScrollHeight())
+
+            setCurrentChat({
+                ...currentChat,
+                msgs: newMsgs.concat(currentChat.msgs),
+            })
+        }
+    }
+
+    useEffect(() => {
+        const currentHeight = scrollRef.current?.getScrollHeight()!;
+        scrollRef.current?.scrollTop(currentHeight - scrollHeight);
+    }, [scrollHeight]);
 
     const onSendMessage = e => {
         e.preventDefault();
@@ -91,8 +108,10 @@ export default function Chat({socket, currentChat, setCurrentChat, lastChats, se
 
     return <div className="bg-slate-950 h-full flex flex-col grow overflow-x-hidden">
         <Scrollbars className="max-h-[730px] overflow-y-auto overflow-x-hidden"
+        ref={scrollRef}
+        onScroll={e => loadMoreMessages()}
         renderThumbVertical={ ({...props}) => <div {...props} className="bg-slate-500 rounded-full"/> }>
-            <div ref={scrollRef} className="flex flex-col gap-2 p-2 pr-8">
+            <div className="flex flex-col gap-2 p-2 pr-8">
                 <MessagesScroll currentChat={currentChat} user={user!}/>
             </div>
         </Scrollbars>

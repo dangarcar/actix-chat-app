@@ -4,11 +4,9 @@ import UserImage from "../../components/UserImage";
 import Scrollbars from "react-custom-scrollbars-2";
 import { getServerUrl } from "../../App";
 import { IChatInfo } from "./ChatInfo";
-import { Message, unixTimeToHour } from "./ChatMessage";
+import { loadMessages, Message, unixTimeToHour } from "./ChatMessage";
 import { readMessage } from "../ChatApp";
 import { useAuth } from "../../components/AuthProvider";
-
-const MESSAGE_PAGE_SIZE = 10; //Would need to be changed in the future
 
 export interface IChatPreview {
     name: string,
@@ -27,19 +25,15 @@ function Contact({setCurrentChat, chatPreview, lastChats, setLastChats}: {
     const onClick = async e => {
         try {
             const contactResponse = await fetch(getServerUrl(`/contact/${chatPreview.name}`));
-            const msgResponse = await fetch(getServerUrl(`/msgs/${chatPreview.name}?size=${MESSAGE_PAGE_SIZE}`));
 
             if(!contactResponse.ok)
                 throw Error(await contactResponse.text());
-            if(!msgResponse.ok)
-                throw Error(await msgResponse.text());
 
             const chatInfo = await contactResponse.json();
-            const msgs: Message[] = await msgResponse.json();
 
             setCurrentChat({
-                msgs: msgs.reverse(),
-                ...chatInfo
+                ...chatInfo,
+                msgs: await loadMessages(chatPreview.name, 0), //Only the first page
             });
 
             readMessage(chatPreview.name, lastChats, setLastChats);
