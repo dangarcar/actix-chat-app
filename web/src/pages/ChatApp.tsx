@@ -38,11 +38,19 @@ export default function ChatApp() {
     const [contactsPopupOpen, setContactsPopupOpen] = useState(false);
     const [currentChat, setCurrentChat] = useState<IChatInfo>();
     const [lastChats, setLastChats] = useState<Map<string, IChatPreview>>(new Map());
+    const [toRead, setToRead] = useState(false);
 
     const navigate = useNavigate();
 
     const onMessage = useCallback(e => {
         const msg: Message = JSON.parse(e.data);
+
+        if(msg.read) { //That means it is a read confirmation
+            if(currentChat?.name === msg.sender) {
+                setToRead(!toRead);
+            }
+            return;
+        }
 
         const chats: [string, IChatPreview][] = Array.from(lastChats, ([k, v]) => {
             if(k === msg.sender)
@@ -154,7 +162,13 @@ export default function ChatApp() {
                     <ContactsBar setCurrentChat={setCurrentChat} lastChats={lastChats} setLastChats={setLastChats}/>
 
                     {currentChat? <>
-                        <Chat socket={socket!} currentChat={currentChat} setCurrentChat={setCurrentChat} lastChats={lastChats} setLastChats={setLastChats}/>
+                        <Chat 
+                            socket={socket!} 
+                            currentChat={currentChat} setCurrentChat={setCurrentChat} 
+                            lastChats={lastChats} setLastChats={setLastChats} 
+                            toRead={toRead}
+                            setToRead={setToRead}
+                        />
                         <ChatInfo {...currentChat}/> 
                     </>: <></>}
                 </div>

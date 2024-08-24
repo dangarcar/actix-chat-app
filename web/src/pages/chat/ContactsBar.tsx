@@ -14,14 +14,13 @@ export interface IChatPreview {
     msg?: Message
 }
 
-function Contact({setCurrentChat, chatPreview, lastChats, setLastChats}: {
+function Contact({setCurrentChat, chatPreview, lastChats, setLastChats, username}: {
     setCurrentChat: (a: IChatInfo) => void,
     chatPreview: IChatPreview,
     lastChats: Map<string, IChatPreview>,
-    setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>
+    setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>,
+    username: string
 }) {
-    const {user} = useAuth();
-
     const onClick = async e => {
         try {
             const contactResponse = await fetch(getServerUrl(`/contact/${chatPreview.name}`));
@@ -49,7 +48,7 @@ function Contact({setCurrentChat, chatPreview, lastChats, setLastChats}: {
             {chatPreview.msg?
                 <p className="text-sm font-light text-slate-300" >
                     <b>{unixTimeToHour(chatPreview.msg.time)}: </b>
-                    {chatPreview.msg.sender === user?.username? " You: ":" "}
+                    {chatPreview.msg.sender === username? " You: ":" "}
                     {chatPreview.msg.msg.length > 40? chatPreview.msg.msg.substring(0, 37) + "..." : chatPreview.msg.msg}
                 </p>
                 :
@@ -67,6 +66,7 @@ export default function ContactsBar({ setCurrentChat, lastChats, setLastChats }:
     lastChats: Map<string, IChatPreview>,
     setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>
 }) {
+    const { user } = useAuth();
     const [searchInput, setSearchInput] = useState("");
     const [filteredLastChats, setFilteredLastChats] = useState<IChatPreview[]>([]);
 
@@ -83,8 +83,6 @@ export default function ContactsBar({ setCurrentChat, lastChats, setLastChats }:
 
                 let unreads = await response.json();
                 let chats: Map<string, IChatPreview> = new Map();
-
-                console.log(unreads);
 
                 for(let cont of await contactResponse.json()) {
                     const unread = unreads.find(e => e.contact == cont.name)?.unread;
@@ -137,7 +135,7 @@ export default function ContactsBar({ setCurrentChat, lastChats, setLastChats }:
         renderThumbVertical={ ({...props}) => <div {...props} className="bg-slate-500 rounded-full"/> }>
             <div className="flex flex-col flex-nowrap">
                 {filteredLastChats.map(chatPreview => 
-                    Contact( {setCurrentChat, chatPreview, lastChats, setLastChats} )
+                    Contact( {setCurrentChat, chatPreview, lastChats, setLastChats, username: user?.username!} )
                 )}
             </div>
         </Scrollbars>

@@ -1,9 +1,11 @@
+use actix::Addr;
 use actix_session::Session;
 use actix_web::{error, get, post, web, Responder};
+
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
-use crate::{api::auth::validate_session, db::{self, Pool}, ws::WsMessage};
+use crate::{api::auth::validate_session, db::{self, Pool}, ws::{ChatServer, ReadMessage, WsMessage}};
 
 const DEFAULT_MESSAGE_PAGE_SIZE: u32 = 10;
 
@@ -76,15 +78,23 @@ pub async fn get_unread(session: Session, db: web::Data<Pool>) -> Result<impl Re
 }
 
 #[post("/read/{username}")]
-pub async fn read(session: Session, db: web::Data<Pool>, username: web::Path<String>) -> Result<impl Responder, error::Error> {
+pub async fn read(session: Session, db: web::Data<Pool>, username: web::Path<String>, srv: web::Data<Addr<ChatServer>>) -> Result<impl Responder, error::Error> {
     let user_id = validate_session(&session)?;
-
+    let username = username.into_inner();
+    
+    let msg = ReadMessage { 
+        reader: user_id.clone(), 
+        writer: username.clone() 
+    };
+    
     db::execute(&db, move |conn| {
         conn.execute(
             "UPDATE msgs SET read = 1 WHERE recv = ?1 AND sender = ?2;", 
-            params![user_id, username.into_inner()]
+            params![user_id, username]
         )
     }).await?;
-
+    
+    srv.do_send(msg);
+    
     Ok("Read")
 }

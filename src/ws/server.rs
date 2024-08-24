@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::db::{self, Pool};
 
-#[derive(Message, Deserialize, Serialize, Clone, Debug)]
+#[derive(Message, Deserialize, Serialize, Clone, Debug, Default)]
 #[rtype(result = "()")]
 pub struct WsMessage {
     pub msg: String,
@@ -29,6 +29,13 @@ pub struct Connect {
 #[rtype(result = "()")]
 pub struct Disconnect {
     pub id: String,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct ReadMessage {
+    pub reader: String,
+    pub writer: String,
 }
 
 #[derive(Debug, Clone)]
@@ -85,6 +92,22 @@ impl Handler<Disconnect> for ChatServer {
     }
 }
 
+impl Handler<ReadMessage> for ChatServer { //When a message is read, a message is sent to confirm that read
+    type Result = ();
+
+    fn handle(&mut self, msg: ReadMessage, _: &mut Self::Context) -> Self::Result {
+        warn!("{}", msg.writer);
+        match self.sessions.get(&msg.writer) {
+            Some(addr) => addr.do_send(WsMessage {
+                read: true,
+                sender: msg.reader,
+                ..Default::default()
+            }),
+            None => debug!("Read not propagated!!")
+        };
+    }
+}
+ 
 impl Handler<WsMessage> for ChatServer {
     type Result = ();
     
@@ -93,7 +116,7 @@ impl Handler<WsMessage> for ChatServer {
 
         match self.sessions.get(&msg.recv) {
             Some(addr) => addr.do_send(msg.clone()),
-            None => debug!("Not propagated!!")
+            None => debug!("Message not propagated!!")
         };
 
         let db = self.db.clone();

@@ -7,7 +7,7 @@ use actix_web_actors::ws;
 
 use sessions::WsChatSession;
 
-pub use server::{ChatServer, WsMessage};
+pub use server::{ChatServer, WsMessage, ReadMessage};
 
 use crate::api::auth::validate_session;
 

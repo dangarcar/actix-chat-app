@@ -1,6 +1,7 @@
 import React from "react"
 import UserImage from "../../components/UserImage"
 import { getServerUrl } from "../../App";
+import { CheckCheck } from "lucide-react";
 
 export interface Message {
     msg: string,
@@ -34,11 +35,12 @@ export default function ChatMessage({mine, msg}: {
     const regexEmoji = /[\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}\u{1F9B0}-\u{1F9B3}]+/gu;
     const allEmoji = msg.msg.match(regexEmoji)?.join() === msg.msg;
 
-    const message = <div className={"max-w-80 rounded p-2 " + (mine? "bg-cyan-900 self-end" : "bg-slate-800")}>
+    const message = <div className={"max-w-80 rounded p-2 pb-0.5 " + (mine? "bg-cyan-900 self-end" : "bg-slate-800")}>
         {!mine && <p className="text-sm font-semibold" >{msg.sender}</p>}
-        <p className={allEmoji? "text-3xl":"text-sm"} >
-            {msg.msg} 
-            <sub className="text-sm text-slate-400 translate-x-4 translate-y-4 select-none">&ensp;{unixTimeToHour(msg.time)}</sub>
+        <p className={`${allEmoji? "text-3xl":"text-sm"}`} >{msg.msg}</p>
+        <p className="text-xs text-slate-400 select-none float-right">
+            {unixTimeToHour(msg.time)}
+            {mine && <span className={`${msg.read? 'text-teal-300': 'text-slate-500'} inline-block relative align-bottom ml-1`}><CheckCheck size={12}/></span>}
         </p>
     </div>;
 

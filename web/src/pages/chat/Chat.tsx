@@ -10,7 +10,7 @@ import { IChatPreview } from "./ContactsBar";
 function MessagesScroll({currentChat, user}: {currentChat: IChatInfo, user: User}) {
     return <>{
         currentChat.msgs.flatMap((e, i) => {
-            const chat = <ChatMessage key={e.time.toString()} mine={e.sender === user?.username} msg={e}/>;
+            const chat = <ChatMessage key={e.time.toString() + e.msg} mine={e.sender === user?.username} msg={e}/>;
             if(i >= currentChat.msgs.length-1) 
                 return [chat];
 
@@ -27,12 +27,14 @@ function MessagesScroll({currentChat, user}: {currentChat: IChatInfo, user: User
     }</>
 }
 
-export default function Chat({socket, currentChat, setCurrentChat, lastChats, setLastChats}: {
+export default function Chat({socket, currentChat, setCurrentChat, lastChats, setLastChats, toRead, setToRead}: {
     socket: WebSocket,
     currentChat: IChatInfo,
     setCurrentChat: React.Dispatch<React.SetStateAction<IChatInfo | undefined>>,
     lastChats: Map<string, IChatPreview>, 
-    setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>
+    setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>,
+    toRead: boolean,
+    setToRead: React.Dispatch<React.SetStateAction<boolean>>
 }) {
     const { user } = useAuth();
     const [emojiOpen, setEmojiOpen] = useState(false);
@@ -56,10 +58,17 @@ export default function Chat({socket, currentChat, setCurrentChat, lastChats, se
     }, []);
 
     const scrollRef = useRef<Scrollbars>(null); 
-    useEffect(() => scrollRef.current?.scrollToBottom(), [message]);
+    useEffect(() => 
+        scrollRef.current?.scrollToBottom(), 
+    [currentChat.msgs]);
     const loadMoreMessages = async () => {
-        if(scrollRef.current?.getScrollTop() === 0) {
+        if(scrollRef.current?.getScrollTop() === 0 && page != -1) {
             const newMsgs = await loadMessages(currentChat.name, page + 1);
+            if(newMsgs.length === 0) {
+                setPage(-1);
+                return;
+            }
+            
             setPage(page + 1);
             setScrollHeight(scrollRef.current.getScrollHeight())
 
@@ -74,6 +83,14 @@ export default function Chat({socket, currentChat, setCurrentChat, lastChats, se
         const currentHeight = scrollRef.current?.getScrollHeight()!;
         scrollRef.current?.scrollTop(currentHeight - scrollHeight);
     }, [scrollHeight]);
+
+    useEffect(() => {
+        setCurrentChat({
+            ...currentChat,
+            lastTime: undefined,
+            msgs: currentChat.msgs.map(e => { return { ...e, read: true } })
+        })
+    }, [toRead])
 
     const onSendMessage = e => {
         e.preventDefault();
