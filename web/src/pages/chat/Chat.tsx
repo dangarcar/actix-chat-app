@@ -85,11 +85,15 @@ export default function Chat({socket, currentChat, setCurrentChat, lastChats, se
     }, [scrollHeight]);
 
     useEffect(() => {
+        if(toRead === false)
+            return;
+        
+        setToRead(false);
         setCurrentChat({
             ...currentChat,
             lastTime: undefined,
             msgs: currentChat.msgs.map(e => { return { ...e, read: true } })
-        })
+        });
     }, [toRead])
 
     const onSendMessage = e => {

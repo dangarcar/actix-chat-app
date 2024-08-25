@@ -12,6 +12,8 @@ import { Message } from "./chat/ChatMessage";
 import { getServerUrl } from "../App";
 import UserImage, { uploadImage } from "../components/UserImage";
 import UpdateBio from "./chat/UpdateBio";
+import useSound from "use-sound";
+import discordNotification from "./../assets/discord-notification.mp3"
 
 export async function readMessage(user: string, lastChats: Map<string, IChatPreview>, setLastChats: React.Dispatch<React.SetStateAction<Map<string, IChatPreview>>>) {
     const response = await fetch(getServerUrl(`/read/${user}`), {method: 'POST'});
@@ -39,6 +41,7 @@ export default function ChatApp() {
     const [currentChat, setCurrentChat] = useState<IChatInfo>();
     const [lastChats, setLastChats] = useState<Map<string, IChatPreview>>(new Map());
     const [toRead, setToRead] = useState(false);
+    const [notificationSound] = useSound(discordNotification);
 
     const navigate = useNavigate();
 
@@ -47,7 +50,7 @@ export default function ChatApp() {
 
         if(msg.read) { //That means it is a read confirmation
             if(currentChat?.name === msg.sender) {
-                setToRead(!toRead);
+                setToRead(true);
             }
             return;
         }
@@ -63,21 +66,18 @@ export default function ChatApp() {
             return [k, v];
         });
 
-        if(!currentChat) {
-            console.warn("There isn't any current chats");
-            return;
-        }
-
-        if(currentChat.name === msg.sender) {
-            readMessage(msg.sender, new Map(chats), setLastChats);    
+        if(currentChat && currentChat.name === msg.sender) {
+            readMessage(msg.sender, new Map(chats), setLastChats);
         } else {
+            notificationSound();
             setLastChats(new Map(chats));
         }
 
-        setCurrentChat({
-            ...currentChat,
-            msgs: currentChat.msgs.concat(msg),
-        });
+        if(currentChat)
+            setCurrentChat({
+                ...currentChat,
+                msgs: currentChat.msgs.concat(msg),
+            });
     }, [lastChats, currentChat]);
 
     useEffect(() => {
